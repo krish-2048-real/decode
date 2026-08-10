@@ -1,0 +1,80 @@
+[
+  {
+    "id": "pmjay",
+    "name": "Ayushman Bharat Pradhan Mantri Jan Arogya Yojana (PM-JAY)",
+    "shortName": "PM-JAY",
+    "description": "World's largest government-funded health assurance scheme providing cashless secondary & tertiary hospital care.",
+    "coverageAmount": "₹5,00,000 per family per year",
+    "incomeThreshold": "Annual household income <= ₹1,20,000 or SECC 2011 deprived rural household",
+    "eligibilityCriteria": [
+      "Rural households with D1-D7 deprivation indicators under SECC 2011",
+      "Families holding BPL / Antyodaya Anna Yojana (AAY) ration card",
+      "Annual family income up to ₹1.2 Lakhs (or state-specific expanded criteria up to ₹3.13 Lakhs in MH Mahatma Jyotirao Phule Jan Arogya Yojana)"
+    ],
+    "benefits": "Cashless hospitalization across 28,000+ impaneled public and private secondary/tertiary hospitals nationwide.",
+    "category": "Health Insurance",
+    "officialSourceUrl": "https://pmjay.gov.in"
+  },
+  {
+    "id": "jsy",
+    "name": "Janani Suraksha Yojana (JSY)",
+    "shortName": "JSY",
+    "description": "Safe motherhood intervention under the National Health Mission promoting institutional delivery among poor pregnant women.",
+    "coverageAmount": "₹1,400 cash incentive (Rural) / ₹1,000 (Urban) + ₹600 ASHA incentive",
+    "incomeThreshold": "Pregnant women belonging to BPL/SC/ST households or general BPL cards",
+    "eligibilityCriteria": [
+      "Pregnant women aged 19 years or above delivering in public health centers or accredited private hospitals",
+      "BPL card holders, SC/ST community members in low-performing states (LPS)",
+      "Covers up to first two live births for general BPL, unlimited for SC/ST/LPS"
+    ],
+    "benefits": "Direct cash transfer to mother's bank account, free emergency transport via 108 ambulance, free post-delivery medicines & diet.",
+    "category": "Maternal Health",
+    "officialSourceUrl": "https://nhm.gov.in/index1.php?lang=1&level=3&sublinkid=841&lid=309"
+  },
+  {
+    "id": "pmmvy",
+    "name": "Pradhan Mantri Matru Vandana Yojana (PMMVY)",
+    "shortName": "PMMVY",
+    "description": "Maternity benefit cash incentive program under Ministry of Women and Child Development.",
+    "coverageAmount": "₹5,000 in two installments (First child) / ₹6,000 (Second child if female)",
+    "incomeThreshold": "Annual family income < ₹8,00,000 (EWS / BPL / MGNREGA Job Card / e-Shram card holders)",
+    "eligibilityCriteria": [
+      "Pregnant Women and Lactating Mothers (PW&LM) for the first living child",
+      "Must register pregnancy early at Anganwadi Centre / PHC within 560 days of LMP",
+      "Must undergo at least one Antenatal Check-up (ANC) and complete child immunization"
+    ],
+    "benefits": "Direct Benefit Transfer (DBT) cash installments into Aadhaar-seeded bank accounts to compensate wage loss during maternity.",
+    "category": "Maternity Benefit",
+    "officialSourceUrl": "https://pmmvy.nic.in"
+  },
+  {
+    "id": "nhm_free_care",
+    "name": "NHM Free Drugs and Diagnostics Service Initiative",
+    "shortName": "NHM Free Essential Care",
+    "description": "National Health Mission mandate ensuring zero out-of-pocket expenditure for essential healthcare at public facilities.",
+    "coverageAmount": "100% Free Essential Medicines & Diagnostic Tests",
+    "incomeThreshold": "Universal access — No income threshold or ration card requirement",
+    "eligibilityCriteria": [
+      "All Indian citizens visiting Sub-Centres, Primary Health Centres (PHC), Community Health Centres (CHC), and District Hospitals",
+      "Includes free blood supply, X-ray, ECG, basic blood panels, and emergency ambulance transport (108)"
+    ],
+    "benefits": "Complete elimination of out-of-pocket expenditure for NLEM essential medicines and essential lab diagnostics.",
+    "category": "Universal Care",
+    "officialSourceUrl": "https://nhm.gov.in/index1.php?lang=1&level=2&sublinkid=202&lid=124"
+  },
+  {
+    "id": "mission_indradhanush",
+    "name": "Intensified Mission Indradhanush (IMI 5.0)",
+    "shortName": "Mission Indradhanush",
+    "description": "Flagship universal immunization campaign targeting unreached children and pregnant women.",
+    "coverageAmount": "100% Free Complete Vaccine Series",
+    "incomeThreshold": "Universal — Free for all infants and pregnant women",
+    "eligibilityCriteria": [
+      "Children up to 5 years of age who have missed routine immunizations",
+      "Pregnant women needing Tetanus-Diphtheria (Td) vaccination"
+    ],
+    "benefits": "Full protection against 12 vaccine-preventable diseases including Polio, Measles, Rubella, Hepatitis B, Rotavirus, and DPT.",
+    "category": "Immunization",
+    "officialSourceUrl": "https://nhm.gov.in"
+  }
+]

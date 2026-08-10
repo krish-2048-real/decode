@@ -1,0 +1,39 @@
+{
+  "entities": {
+    "asha_alerts": {
+      "title": "ASHA Emergency Alerts",
+      "description": "Real-time red-flag symptom escalations from patient triage sessions dispatched to ASHA workers.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "severity": { "type": "string" },
+        "symptomTags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "userMessage": { "type": "string" },
+        "escalationReason": { "type": "string" },
+        "district": { "type": "string" },
+        "userIdHash": { "type": "string" },
+        "status": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "severity", "status", "timestamp"]
+    },
+    "osm_facility_cache": {
+      "title": "OpenStreetMap Facility Geo-Bucket Cache",
+      "description": "Cached Overpass API healthcare facility nodes per geo_bucket to respect API rate limits.",
+      "type": "object",
+      "properties": {
+        "bucketKey": { "type": "string" },
+        "facilities": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["bucketKey", "timestamp"]
+    }
+  }
+}

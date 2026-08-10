@@ -1,0 +1,32 @@
+=== WHO Integrated Management of Childhood Illness (IMCI) Guidelines ===
+Publication: World Health Organization (WHO) & UNICEF Health Technical Manual
+Section 4.2: General Danger Signs & Emergency Triage Protocol
+
+1. GENERAL DANGER SIGNS IN SICK CHILDREN (AGE 2 MONTHS TO 5 YEARS):
+- Inability to drink or breastfeed: Child is too weak to suck or swallow liquid.
+- Vomiting everything: Child cannot retain any food, milk, or fluids.
+- Convulsions: Child had fits or seizures during current illness or in past 24 hours.
+- Lethargic or Unconscious: Child is abnormally sleepy, unresponsive, or difficult to awaken.
+-> MANDATORY ACTION: Urgent referral to Primary Health Centre (PHC) or District Hospital with pre-referral treatment (first dose of antibiotic/antimalarial, oral rehydration, ORS).
+
+2. COUGH OR DIFFICULT BREATHING:
+- Fast Breathing Thresholds:
+  * Age 2 months to 12 months: 50 breaths per minute or more.
+  * Age 12 months to 5 years: 40 breaths per minute or more.
+- Chest Indrawing: Lower chest wall moves IN when child breathes IN. Indicates severe pneumonia.
+- Stridor: Harsh noise when child breathes IN while calm.
+-> ACTION: Fast breathing alone = Pneumonia -> Oral Amoxicillin for 5 days. Chest indrawing or stridor = Severe Pneumonia -> Immediate hospital referral for IV antibiotics and oxygen therapy.
+
+3. FEVER & MALARIA / DENGUE ASSESSMENTS:
+- High Fever (>38.5°C or 101.3°F): Check for stiff neck, bulging fontanelle, petechial skin rash, or excessive drowsiness (Meningitis signs).
+- In endemic malaria zones: Perform Rapid Diagnostic Test (RDT). If positive, administer Artemisinin-based Combination Therapy (ACT).
+- Dengue Danger Signs: Persistent vomiting, severe abdominal pain, mucosal bleeding, fluid accumulation, lethargy, skin cold/clammy.
+-> ACTION: Cold sponging, Paracetamol syrup (10-15 mg/kg), oral fluid push, urgent referral if danger signs present.
+
+4. DIARRHEA & DEHYDRATION CLASSIFICATION:
+- Severe Dehydration: Lethargic/unconscious, sunken eyes, skin pinch goes back VERY SLOWLY (>2 seconds).
+  * Action: Plan C -> IV Ringer's Lactate immediately, ORS via nasogastric tube if IV unavailable.
+- Some Dehydration: Restless/irritable, sunken eyes, drinks eagerly/thirsty, skin pinch goes back slowly.
+  * Action: Plan B -> ORS solution (75 ml/kg over 4 hours) + Zinc supplementation (20 mg daily for 14 days).
+- No Dehydration: Well, alert.
+  * Action: Plan A -> Increased fluids at home, Zinc supplementation, continued feeding, educate mother on danger signs.

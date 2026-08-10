@@ -1,0 +1,28 @@
+=== ICMR & National Health Mission (NHM) Rural Emergency Protocols ===
+Publication: Indian Council of Medical Research (ICMR) & Ministry of Health and Family Welfare (MoHFW)
+Section 2: Adult Red-Flag Triage & First-Response Standard Operating Procedures
+
+1. ACUTE CORONARY SYNDROME & CARDIAC EMERGENCIES:
+- Symptoms: Heavy crushing retrosternal chest pain/pressure, radiation to left arm/jaw/epigastrium, profuse cold sweating, acute dyspnea.
+- Red Flag: Pain lasting > 15 minutes unresponsive to rest.
+- Immediate First Aid: Dispath 108 Ambulance immediately. Administer Aspirin 300 mg chewable + Clopidogrel 300 mg if authorized by PHC Medical Officer. Keep patient at 45-degree seated posture, avoid physical exertion, monitor radial pulse.
+
+2. ACUTE CEREBROVASCULAR ACCIDENT (STROKE) - F.A.S.T. PROTOCOL:
+- Face: Asymmetry or mouth drooping when smiling.
+- Arm: Unilateral arm weakness or drift when extended.
+- Speech: Slurred, garbled, or inappropriate words.
+- Time: Onset time critical! Brain window is < 4.5 hours for thrombolytic therapy.
+- Action: Position patient sideways (recovery position) to prevent aspiration. Do NOT give oral food/water. Rapid transfer to District Hospital with CT scan facility.
+
+3. ACUTE RESPIRATORY DISTRESS & ASTHMA / COPD EXACERBATION:
+- Signs: Severe air hunger, inability to complete full sentences in one breath, intercostal retractions, cyanosis (bluish tint on lips/nails), SpO2 < 92% on pulse oximeter.
+- Immediate Measures: Oxygen administration at 4-6 L/min via nasal cannula. Metered Dose Inhaler (Salbutamol 100 mcg) via spacer — 4 to 8 puffs repeated every 20 minutes for first hour. Urgent transit to nearest Community Health Centre (CHC).
+
+4. SEVERE SEPSIS & FEVER WITH ALTERED SENSORIUM:
+- Indicators: High fever (>39°C) or hypothermia (<36°C), tachycardia (>100 bpm), tachypnea (>22 bpm), systolic BP < 90 mmHg, confusion, severe rigors.
+- Common Causes in Rural Sectors: Acute pyelonephritis, severe pneumonia, complicated malaria, scrub typhus, acute gastroenteritis.
+- Action: Establish rapid IV line (Normal Saline 0.9%), draw blood culture/smear if PHC equipped, administer empirical parenteral antibiotics (e.g., Ceftriaxone 1g IV) as per MO guidance, urgent transfer.
+
+5. ACUTE OBSTETRIC & GYNECOLOGICAL EMERGENCIES:
+- Postpartum Hemorrhage (PPH): Heavy vaginal bleeding (>500 ml) following delivery. Action: Uterine massage, IV Oxytocin 10 IU, rapid fluid resuscitation, emergency 108 transfer.
+- Eclampsia: Blood pressure >= 140/90 mmHg with protein in urine, persistent severe headache, visual disturbances, epigastric pain, and seizures in pregnant woman. Action: IV/IM Magnesium Sulfate regimen as per NHM protocol, urgent transfer to FRU (First Referral Unit).

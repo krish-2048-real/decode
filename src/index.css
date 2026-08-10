@@ -1,0 +1,56 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  
+  --color-gold-50: #FAF6ED;
+  --color-gold-100: #F4ECCB;
+  --color-gold-200: #E8D8A0;
+  --color-gold-300: #DCC272;
+  --color-gold-400: #E0A845;
+  --color-gold-500: #D4A24E;
+  --color-gold-600: #B68434;
+  --color-gold-700: #916323;
+  --color-gold-800: #6F491A;
+  --color-gold-900: #4F3212;
+  --color-gold-950: #2D1A08;
+
+  --color-cream-bg: #F5F1E8;
+  --color-cream-card: #FFFFFF;
+  --color-dark-bg: #0B0A0F;
+  --color-dark-card: #151318;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #F5F1E8;
+  color: #1A1816;
+}
+
+.dark body {
+  background-color: #0B0A0F;
+  color: #F3EFE6;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Custom Leaflet Map styling overrides */
+.leaflet-container {
+  font-family: inherit !important;
+  border-radius: 1rem;
+}

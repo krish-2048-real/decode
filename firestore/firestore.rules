@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ASHA Alerts Collection: Allow public read/create with strict schema checks, update allowed for status changes
+    match /asha_alerts/{alertId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['id', 'severity', 'status', 'timestamp'])
+                    && request.resource.data.status in ['pending', 'acknowledged', 'visited'];
+      allow update: if request.resource.data.status in ['pending', 'acknowledged', 'visited'];
+      allow delete: if false;
+    }
+
+    // OSM Facility Cache Collection: Read-only for public, write restricted to cached bucket documents with valid timestamps
+    match /osm_facility_cache/{bucketKey} {
+      allow read: if true;
+      allow create, update: if request.resource.data.keys().hasAll(['bucketKey', 'facilities', 'timestamp'])
+                            && request.resource.data.timestamp is number;
+      allow delete: if false;
+    }
+
+  }
+}

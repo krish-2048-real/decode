@@ -1,0 +1,6 @@
+{
+  "name": "Arogya Sahayak",
+  "description": "Rural health assistant with AI triage, government scheme matching, and nearest PHC locator.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
