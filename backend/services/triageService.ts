@@ -91,15 +91,30 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
   const isSensitive = Boolean(detectedSensitiveCategory) || Boolean(preferPrivate);
   const isPrivateRouting = isSensitive;
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || (typeof import.meta !== 'undefined' && (import.meta as any).env && ((import.meta as any).env.VITE_GEMINI_API_KEY || (import.meta as any).env.GEMINI_API_KEY));
   let result: TriageResult;
 
   if (!apiKey) {
+    let fallbackText = '';
+    if (language === 'hi') {
+      fallbackText = matchedRedFlag 
+        ? `🚨 आपात्कालीन स्वास्थ्य चेतावनी: आपके लक्षणों ("${matchedRedFlag}") के आधार पर तुरंत नजदीकी प्राथमिक स्वास्थ्य केंद्र (PHC) या 108 एम्बुलेंस सेवा से संपर्क करें।`
+        : `नमस्ते! आपके द्वारा बताए गए लक्षणों के लिए प्राथमिक स्वास्थ्य देखभाल सलाह: प्रचुर मात्रा में स्वच्छ जल पिएं, विश्राम करें और अपने नजदीकी पीएचसी (PHC) केंद्र पर आशा कार्यकर्ता से संपर्क करें। ${isPrivateRouting ? '\n🔒 गोपनीय परामर्श सक्रिय: 14416 (Tele-MANAS) या eSanjeevani पर निःशुल्क कॉल करें।' : ''}`;
+    } else if (language === 'mr') {
+      fallbackText = matchedRedFlag
+        ? `🚨 तातडीची आरोग्य सूचना: आपल्या लक्षणांच्या आधारे ("${matchedRedFlag}") ताबडतोब जवळच्या प्राथमिक आरोग्य केंद्रात (PHC) किंवा १०८ रुग्णवाहिकेस कॉल करा.`
+        : `नमस्ते! तुमच्या लक्षणांसाठी प्राथमिक आरोग्य सल्ला: विश्रांती घ्या, भरपूर पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा. ${isPrivateRouting ? '\n🔒 गोपनीय सल्लामसलत सक्रिय: १४४१६ (Tele-MANAS) वर विनामूल्य कॉल करा.' : ''}`;
+    } else {
+      fallbackText = matchedRedFlag
+        ? `🚨 EMERGENCY HEALTH ALERT: Based on your reported red-flag symptom ("${matchedRedFlag}"), please seek immediate medical transport to your nearest Primary Health Centre or call 108 Emergency Ambulance.`
+        : `Namaste. For your reported symptoms, please stay hydrated with clean water, rest adequately, and consult your local ASHA worker or Primary Health Centre (PHC) doctor. ${isPrivateRouting ? '\n🔒 Confidential Route Active: Call 14416 (Tele-MANAS National Helpline) or use eSanjeevani Telemedicine for private consultation.' : ''}`;
+    }
+
     result = {
-      symptoms: imageBase64 ? ["Visible skin/wound condition", "Reported symptoms"] : ["Unspecified symptom"],
-      severity: matchedRedFlag ? "CRITICAL" : "MODERATE",
-      triage_advice: `Medical advice in ${language}: Please consult nearest healthcare center. ${isPrivateRouting ? '🔒 Confidential Routing Active: Contact Tele-MANAS (14416) or eSanjeevani for private consultation.' : ''}`,
-      disclaimer: "Disclaimer: This tool provides general health guidance and is NOT a substitute for professional medical advice.",
+      symptoms: imageBase64 ? ["Visible skin/wound condition", "Reported symptom notes"] : [message || "Reported health concern"],
+      severity: matchedRedFlag ? "CRITICAL" : (isSensitive ? "MODERATE" : "MILD"),
+      triage_advice: fallbackText,
+      disclaimer: "Disclaimer: This AI & clinical rule-based triage tool provides preliminary guidance and does not replace emergency medical diagnosis.",
       escalate_immediately: matchedRedFlag ? true : false,
       escalation_reason: matchedRedFlag ? `Red-flag symptom detected: "${matchedRedFlag}". Emergency care required!` : "",
       is_sensitive: isSensitive,
@@ -107,7 +122,7 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
       is_private_routing: isPrivateRouting,
       private_helpline: isPrivateRouting ? helplineInfo : undefined,
       visual_analysis: imageBase64 ? {
-        description: "Captured image shows localized skin/tissue irregularity requiring clinical observation.",
+        description: "Captured image uploaded for clinical inspection. Shows localized skin texture or lesion.",
         concern_category: "Dermatological / Visual Inspection",
         urgency: "MODERATE"
       } : undefined

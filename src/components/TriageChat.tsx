@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ChatTurn, TriageResult, UserProfile } from '../types/health';
+import { runTriageSymptom } from '../../backend/services/triageService';
 import { db, doc, setDoc, getDoc } from '../lib/firebase';
 import { AgentReasoningTrace } from './AgentReasoningTrace';
 import { DigitalHealthCardModal } from './DigitalHealthCardModal';
@@ -214,6 +215,8 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
     setSelectedImage(null);
     setIsLoading(true);
 
+    let triageRes: TriageResult | null = null;
+
     try {
       const response = await fetch('/api/triageSymptom', {
         method: 'POST',
@@ -227,23 +230,42 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
         })
       });
 
-      const data = await response.json();
-      if (data.success && data.result) {
-        const triageRes: TriageResult = data.result;
-        const assistantTurn: ChatTurn = {
-          id: 'turn_ai_' + Date.now(),
-          role: 'assistant',
-          text: triageRes.triage_advice,
-          lang: language,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          result: triageRes
-        };
-        setMessages(prev => [...prev, assistantTurn]);
-      } else {
-        throw new Error(data.error || 'Failed to analyze symptoms.');
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.success && data.result) {
+          triageRes = data.result;
+        }
       }
     } catch (err: any) {
-      console.error('Error fetching triage:', err);
+      console.warn('API /api/triageSymptom unreachable, running direct client triage engine:', err);
+    }
+
+    if (!triageRes) {
+      // Execute robust client-side triage engine fallback
+      try {
+        triageRes = await runTriageSymptom({
+          message: text || 'Photograph of visible symptom submitted for clinical visual assessment.',
+          language,
+          userProfile,
+          preferPrivate,
+          imageBase64: imageToSend || undefined
+        });
+      } catch (fallbackErr) {
+        console.error('Client fallback triage failed:', fallbackErr);
+      }
+    }
+
+    if (triageRes) {
+      const assistantTurn: ChatTurn = {
+        id: 'turn_ai_' + Date.now(),
+        role: 'assistant',
+        text: triageRes.triage_advice,
+        lang: language,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        result: triageRes
+      };
+      setMessages(prev => [...prev, assistantTurn]);
+    } else {
       const errorTurn: ChatTurn = {
         id: 'turn_err_' + Date.now(),
         role: 'assistant',
@@ -252,9 +274,9 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       setMessages(prev => [...prev, errorTurn]);
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   };
 
   const getSeverityBadgeClass = (severity?: string) => {

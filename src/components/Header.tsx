@@ -4,6 +4,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { LanguageOption, UserProfile } from '../types/health';
+import { LocationCascader } from './LocationCascader';
 import { 
   HeartPulse, 
   Sun, 
@@ -220,20 +221,14 @@ export const Header: React.FC<HeaderProps> = ({ userProfile, setUserProfile, set
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
-                  State & District
-                </label>
-                <select
-                  value={userProfile.state || 'Maharashtra'}
-                  onChange={(e) => setUserProfile({ ...userProfile, state: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs font-medium text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E] cursor-pointer"
-                >
-                  <option value="Maharashtra">Maharashtra (Pune District)</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh (Lucknow)</option>
-                  <option value="Bihar">Bihar (Patna)</option>
-                  <option value="Rajasthan">Rajasthan (Jaipur)</option>
-                  <option value="Madhya Pradesh">Madhya Pradesh (Bhopal)</option>
-                </select>
+                <LocationCascader
+                  selectedState={userProfile.state || 'Maharashtra'}
+                  selectedDistrict={userProfile.district || 'Pune Rural'}
+                  selectedVillage={userProfile.village || ''}
+                  onStateChange={(st) => setUserProfile({ ...userProfile, state: st })}
+                  onDistrictChange={(dt) => setUserProfile({ ...userProfile, district: dt })}
+                  onVillageChange={(vl) => setUserProfile({ ...userProfile, village: vl })}
+                />
               </div>
 
               <div className="pt-2 space-y-2.5">

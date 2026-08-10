@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { UserProfile } from '../types/health';
+import { LocationCascader } from './LocationCascader';
 import { 
   UserCheck, 
   CheckCircle2, 
@@ -17,7 +18,8 @@ export const ProfileSetupScreen: React.FC = () => {
   const [age, setAge] = useState<number>(userProfile?.age || 32);
   const [gender, setGender] = useState<string>(userProfile?.gender || 'Female');
   const [state, setState] = useState<string>(userProfile?.state || 'Maharashtra');
-  const [district, setDistrict] = useState<string>(userProfile?.district || 'Pune District');
+  const [district, setDistrict] = useState<string>(userProfile?.district || 'Pune Rural');
+  const [village, setVillage] = useState<string>(userProfile?.village || '');
   const [phone, setPhone] = useState<string>(userProfile?.phone || '');
   const [income, setIncome] = useState<number>(userProfile?.income || 96000);
   const [isBPL, setIsBPL] = useState<boolean>(userProfile?.isBPL ?? true);
@@ -34,6 +36,7 @@ export const ProfileSetupScreen: React.FC = () => {
         gender,
         state,
         district,
+        village,
         phone,
         income,
         isBPL,
@@ -113,38 +116,16 @@ export const ProfileSetupScreen: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                State
-              </label>
-              <select
-                value={state}
-                onChange={(e) => setState(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
-              >
-                <option value="Maharashtra">Maharashtra</option>
-                <option value="Uttar Pradesh">Uttar Pradesh</option>
-                <option value="Bihar">Bihar</option>
-                <option value="Rajasthan">Rajasthan</option>
-                <option value="Madhya Pradesh">Madhya Pradesh</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                District / Region
-              </label>
-              <input
-                type="text"
-                required
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                placeholder="e.g. Pune District"
-                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-          </div>
+          {/* Location Selector Cascade */}
+          <LocationCascader
+            selectedState={state}
+            selectedDistrict={district}
+            selectedVillage={village}
+            onStateChange={setState}
+            onDistrictChange={setDistrict}
+            onVillageChange={setVillage}
+            darkTheme={true}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <div>

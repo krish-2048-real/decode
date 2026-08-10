@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { VillageHealthAdvisory } from '../services/advisoryService';
+import { generateVillageAdvisory, VillageHealthAdvisory } from '../../backend/services/advisoryService';
 import { 
   X, 
   Printer, 
@@ -35,21 +35,35 @@ export const VillageHealthAdvisoryModal: React.FC<VillageHealthAdvisoryModalProp
 
   const fetchAdvisory = async (lang: string = selectedLang) => {
     setIsLoading(true);
+    let advisoryRes: VillageHealthAdvisory | null = null;
     try {
       const res = await fetch('/api/generateAdvisory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ district: districtName, language: lang })
       });
-      const data = await res.json();
-      if (data.success && data.advisory) {
-        setAdvisory(data.advisory);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && data.advisory) {
+          advisoryRes = data.advisory;
+        }
       }
     } catch (err) {
-      console.error('Error fetching village advisory:', err);
-    } finally {
-      setIsLoading(false);
+      console.warn('API /api/generateAdvisory unavailable, using direct advisory service fallback:', err);
     }
+
+    if (!advisoryRes) {
+      try {
+        advisoryRes = await generateVillageAdvisory(districtName, lang);
+      } catch (fErr) {
+        console.error('Client advisory service fallback error:', fErr);
+      }
+    }
+
+    if (advisoryRes) {
+      setAdvisory(advisoryRes);
+    }
+    setIsLoading(false);
   };
 
   React.useEffect(() => {

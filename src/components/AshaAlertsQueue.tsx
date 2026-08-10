@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { AshaAlert } from '../types/health';
+import { getAshaAlertsAsync } from '../../backend/services/alertsService';
 import { QrScannerModal } from './QrScannerModal';
 import { VillageHealthAdvisoryModal } from './VillageHealthAdvisoryModal';
 import { db, collection, query, orderBy, onSnapshot } from '../lib/firebase';
@@ -29,17 +30,32 @@ export const AshaAlertsQueue: React.FC = () => {
 
   const fetchAlerts = async () => {
     setIsLoading(true);
+    let loadedAlerts: AshaAlert[] | null = null;
     try {
       const res = await fetch('/api/ashaAlerts');
-      const data = await res.json();
-      if (data.success && data.alerts) {
-        setAlerts(data.alerts);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.alerts)) {
+          loadedAlerts = data.alerts;
+        }
       }
     } catch (err) {
-      console.error('Error fetching ASHA alerts:', err);
-    } finally {
-      setIsLoading(false);
+      console.warn('API /api/ashaAlerts endpoint unavailable, using direct alerts service fallback:', err);
     }
+
+    if (!loadedAlerts) {
+      try {
+        const fallbackAlerts = await getAshaAlertsAsync();
+        loadedAlerts = fallbackAlerts;
+      } catch (fErr) {
+        console.error('Client alerts service fallback error:', fErr);
+      }
+    }
+
+    if (loadedAlerts) {
+      setAlerts(loadedAlerts);
+    }
+    setIsLoading(false);
   };
 
   const checkHealth = async () => {

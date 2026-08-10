@@ -10,6 +10,8 @@ export interface UserProfile {
   income?: number; // annual income in INR
   state?: string;
   district?: string;
+  village?: string;
+  block?: string;
   isPregnant?: boolean;
   isBPL?: boolean;
   gender?: string;

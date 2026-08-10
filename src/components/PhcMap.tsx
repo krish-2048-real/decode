@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { PHCFacility } from '../types/health';
+import { getNearestFacilities } from '../../backend/services/facilitiesService';
 import { 
   Building2, 
   MapPin, 
@@ -70,6 +71,10 @@ export const PhcMap: React.FC = () => {
 
   const fetchFacilities = async (lat?: number, lng?: number, dist?: string) => {
     setIsLoading(true);
+    let loadedFacilities: PHCFacility[] | null = null;
+    let fallbackFlag = false;
+    let sourceText = 'OpenStreetMap (Live)';
+
     try {
       const params = new URLSearchParams();
       if (lat !== undefined) params.append('lat', lat.toString());
@@ -78,23 +83,36 @@ export const PhcMap: React.FC = () => {
 
       const url = `/api/phcFacilities?${params.toString()}`;
       const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.success && data.facilities) {
-        setFacilities(data.facilities);
-        setDataSourceInfo({
-          isFallback: Boolean(data.isFallback),
-          source: data.source || 'OpenStreetMap (Live)'
-        });
-        if (data.facilities.length > 0) {
-          setSelectedFacility(data.facilities[0]);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.facilities)) {
+          loadedFacilities = data.facilities;
+          fallbackFlag = Boolean(data.isFallback);
+          sourceText = data.source || 'OpenStreetMap (Live)';
         }
       }
     } catch (err) {
-      console.error('Error loading facilities from server:', err);
-    } finally {
-      setIsLoading(false);
+      console.warn('API /api/phcFacilities unavailable, using direct client facility service fallback:', err);
     }
+
+    if (!loadedFacilities) {
+      try {
+        const fallbackRes = await getNearestFacilities(lat, lng, dist);
+        loadedFacilities = fallbackRes.facilities;
+        fallbackFlag = fallbackRes.isFallback;
+        sourceText = fallbackRes.source;
+      } catch (fErr) {
+        console.error('Client facility service fallback error:', fErr);
+      }
+    }
+
+    if (loadedFacilities && loadedFacilities.length > 0) {
+      setFacilities(loadedFacilities);
+      setDataSourceInfo({ isFallback: fallbackFlag, source: sourceText });
+      setSelectedFacility(loadedFacilities[0]);
+    }
+
+    setIsLoading(false);
   };
 
   useEffect(() => {
