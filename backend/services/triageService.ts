@@ -229,11 +229,15 @@ Image Included: ${imageBase64 ? 'YES' : 'NO'}`;
         }
       });
 
-      const text = response.text || "{}";
-      const parsed = JSON.parse(text) as any;
+      let rawText = response.text || "{}";
+      let cleanText = rawText.trim();
+      if (cleanText.startsWith("```")) {
+        cleanText = cleanText.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+      }
+      const parsed = JSON.parse(cleanText) as any;
 
       result = {
-        symptoms: parsed.symptoms || ["Symptom reported"],
+        symptoms: (parsed.symptoms && parsed.symptoms.length > 0) ? parsed.symptoms : [message || "Symptom reported"],
         severity: parsed.severity || (matchedRedFlag ? "CRITICAL" : "MODERATE"),
         triage_advice: parsed.triage_advice || "Please visit nearest Primary Health Centre.",
         disclaimer: parsed.disclaimer || "Disclaimer: AI preliminary screening tool.",
@@ -249,13 +253,29 @@ Image Included: ${imageBase64 ? 'YES' : 'NO'}`;
           urgency: parsed.severity || "MODERATE"
         } : undefined)
       };
-    } catch (err) {
-      console.error("Gemini API call failed, using fallback:", err);
+    } catch (err: any) {
+      console.error("[CRITICAL TRIAGE ERROR] Gemini API call or response parsing failed:", {
+        errorMessage: err?.message || String(err),
+        errorName: err?.name,
+        errorStack: err?.stack,
+        apiKeyPresent: Boolean(apiKey),
+        apiKeyLength: apiKey ? apiKey.length : 0,
+        languageRequested: language,
+        inputMessagePreview: message ? message.substring(0, 100) : ""
+      });
+
+      const extractedSymptom = message ? message.trim() : "Reported Health Concern";
+      const localizedFallbackAdvice = language === 'hi'
+        ? `आपके बताए लक्षणों ("${extractedSymptom}") के लिए प्राथमिक सलाह: पर्याप्त विश्राम करें, स्वच्छ उबला पानी पिएं, और नजदीकी प्राथमिक स्वास्थ्य केंद्र (PHC) या आशा कार्यकर्ता से संपर्क करें। ${isPrivateRouting ? '\n🔒 गोपनीय हेल्पलाइन: 14416 (Tele-MANAS) या eSanjeevani पर निःशुल्क कॉल करें।' : ''}`
+        : language === 'mr'
+        ? `तुमच्या लक्षणांसाठी ("${extractedSymptom}") प्राथमिक आरोग्य सल्ला: विश्रांती घ्या, उकळलेले स्वच्छ पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा. ${isPrivateRouting ? '\n🔒 गोपनीय मार्ग सक्रिय: १४४१६ (Tele-MANAS) वर विनामूल्य कॉल करा.' : ''}`
+        : `Primary health guidance for your symptoms ("${extractedSymptom}"): Rest adequately, stay hydrated with clean water, and consult your nearest Primary Health Centre (PHC) or local ASHA worker. ${isPrivateRouting ? '\n🔒 Confidential Route: Call 14416 (Tele-MANAS National Helpline) or use eSanjeevani for private consultation.' : ''}`;
+
       result = {
-        symptoms: ["Symptom reported"],
-        severity: matchedRedFlag ? "CRITICAL" : "MODERATE",
-        triage_advice: `Please consult a healthcare professional. ${isPrivateRouting ? '🔒 Confidential option active.' : ''}`,
-        disclaimer: "Disclaimer: This tool provides preliminary health guidance only.",
+        symptoms: imageBase64 ? ["Visible skin/wound condition", extractedSymptom] : [extractedSymptom],
+        severity: matchedRedFlag ? "CRITICAL" : (isSensitive ? "MODERATE" : "MILD"),
+        triage_advice: localizedFallbackAdvice,
+        disclaimer: "Disclaimer: This tool provides preliminary health guidance only and is not a replacement for a clinical diagnosis.",
         escalate_immediately: matchedRedFlag ? true : false,
         escalation_reason: matchedRedFlag ? `Red-flag keyword detected: ${matchedRedFlag}` : "",
         is_sensitive: isSensitive,
