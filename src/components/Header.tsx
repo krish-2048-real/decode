@@ -202,8 +202,11 @@ export const Header: React.FC<HeaderProps> = ({ userProfile, setUserProfile, set
                 </label>
                 <input
                   type="number"
-                  value={userProfile.age || 30}
-                  onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) || 0 })}
+                  value={userProfile.age ?? ''}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setUserProfile({ ...userProfile, age: isNaN(val) ? 0 : val });
+                  }}
                   className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs font-medium text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E]"
                 />
               </div>
@@ -214,8 +217,11 @@ export const Header: React.FC<HeaderProps> = ({ userProfile, setUserProfile, set
                 </label>
                 <input
                   type="number"
-                  value={userProfile.income || 96000}
-                  onChange={(e) => setUserProfile({ ...userProfile, income: parseInt(e.target.value) || 0 })}
+                  value={userProfile.income ?? ''}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setUserProfile({ ...userProfile, income: isNaN(val) ? 0 : val });
+                  }}
                   className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs font-medium text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E]"
                 />
               </div>

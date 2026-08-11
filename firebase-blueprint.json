@@ -34,6 +34,41 @@
         "timestamp": { "type": "number" }
       },
       "required": ["bucketKey", "timestamp"]
+    },
+    "users": {
+      "title": "User Profiles",
+      "description": "Patient and ASHA worker user profiles.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "age": { "type": "number" },
+        "income": { "type": "number" },
+        "state": { "type": "string" },
+        "district": { "type": "string" },
+        "village": { "type": "string" },
+        "isBPL": { "type": "boolean" },
+        "isPregnant": { "type": "boolean" },
+        "gender": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "/asha_alerts/{alertId}": {
+      "schema": "asha_alerts",
+      "description": "Emergency alerts for ASHA workers"
+    },
+    "/osm_facility_cache/{bucketKey}": {
+      "schema": "osm_facility_cache",
+      "description": "Cached PHC locations"
+    },
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile records"
     }
   }
 }

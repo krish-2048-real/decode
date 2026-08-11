@@ -24,16 +24,22 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
   const calculateMatches = async () => {
     setIsLoading(true);
     let matchedData: SchemeMatchResult[] | null = null;
+    const calcAge = userProfile.age !== undefined ? userProfile.age : 32;
+    const calcIncome = userProfile.income !== undefined ? userProfile.income : 96000;
+    const calcState = userProfile.state || 'Maharashtra';
+    const calcPreg = Boolean(userProfile.isPregnant);
+    const calcBPL = userProfile.isBPL ?? true;
+
     try {
       const response = await fetch('/api/matchSchemes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          age: userProfile.age || 30,
-          income: userProfile.income || 96000,
-          state: userProfile.state || 'Maharashtra',
-          is_pregnant: userProfile.isPregnant || false,
-          is_bpl: userProfile.isBPL ?? true
+          age: calcAge,
+          income: calcIncome,
+          state: calcState,
+          is_pregnant: calcPreg,
+          is_bpl: calcBPL
         })
       });
 
@@ -52,11 +58,11 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
     } else {
       // Execute robust client-side scheme match engine fallback
       const localMatches = matchSchemes({
-        age: userProfile.age || 30,
-        income: userProfile.income || 96000,
-        state: userProfile.state || 'Maharashtra',
-        is_pregnant: userProfile.isPregnant || false,
-        is_bpl: userProfile.isBPL ?? true
+        age: calcAge,
+        income: calcIncome,
+        state: calcState,
+        is_pregnant: calcPreg,
+        is_bpl: calcBPL
       });
       setMatches(localMatches);
     }
@@ -100,8 +106,11 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
             </label>
             <input
               type="number"
-              value={userProfile.age || 30}
-              onChange={(e) => setUserProfile({ ...userProfile, age: parseInt(e.target.value) || 0 })}
+              value={userProfile.age ?? ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                setUserProfile({ ...userProfile, age: isNaN(val) ? 0 : val });
+              }}
               className="w-full px-3 py-1.5 rounded-lg bg-[#FAFAF7] dark:bg-[#151318] border border-[#E5E0D8] dark:border-stone-700 text-xs font-semibold text-stone-900 dark:text-stone-100 focus:ring-[#D4A24E]"
             />
           </div>
@@ -112,8 +121,11 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
             </label>
             <input
               type="number"
-              value={userProfile.income || 96000}
-              onChange={(e) => setUserProfile({ ...userProfile, income: parseInt(e.target.value) || 0 })}
+              value={userProfile.income ?? ''}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                setUserProfile({ ...userProfile, income: isNaN(val) ? 0 : val });
+              }}
               className="w-full px-3 py-1.5 rounded-lg bg-[#FAFAF7] dark:bg-[#151318] border border-[#E5E0D8] dark:border-stone-700 text-xs font-semibold text-stone-900 dark:text-stone-100 focus:ring-[#D4A24E]"
             />
           </div>

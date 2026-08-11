@@ -88,10 +88,23 @@ export async function getNearestFacilities(
   const targetLat = userLat || 18.8505;
   const targetLng = userLng || 73.9102;
 
+  const filterList = (list: PHCFacility[]): PHCFacility[] => {
+    if (!districtFilter || !districtFilter.trim()) return list;
+    const q = districtFilter.trim().toLowerCase();
+    return list.filter(f => 
+      (f.name && f.name.toLowerCase().includes(q)) ||
+      (f.district && f.district.toLowerCase().includes(q)) ||
+      (f.block && f.block.toLowerCase().includes(q)) ||
+      (f.address && f.address.toLowerCase().includes(q)) ||
+      (f.type && f.type.toLowerCase().includes(q))
+    );
+  };
+
   const latBucket = Math.floor(targetLat * 10) / 10;
   const lngBucket = Math.floor(targetLng * 10) / 10;
   const bucketKey = `osm_cache_${latBucket.toFixed(1)}_${lngBucket.toFixed(1)}`;
 
+  // 1. Try Firestore Cache
   try {
     const cacheDocRef = doc(db, 'osm_facility_cache', bucketKey);
     const docSnap = await getDoc(cacheDocRef);
@@ -107,90 +120,118 @@ export async function getNearestFacilities(
           distanceKm: calculateHaversineDistance(targetLat, targetLng, f.lat, f.lng)
         })).sort((a: PHCFacility, b: PHCFacility) => (a.distanceKm || 0) - (b.distanceKm || 0));
 
-        return { facilities: cachedWithDist, isFallback: false, source: 'Firestore Cache (OSM Overpass API)' };
+        return { facilities: filterList(cachedWithDist), isFallback: false, source: 'Firestore Cache (OpenStreetMap Nodes)' };
       }
     }
   } catch (err) {
-    console.warn('Firestore facility cache lookup error:', err);
+    console.warn('Firestore facility cache lookup notice:', err);
   }
 
+  // 2. Query OpenStreetMap Nominatim API for live Healthcare POIs around target coordinates
   try {
-    const overpassQuery = `
-      [out:json][timeout:10];
-      (
-        node["amenity"="hospital"](around:25000, ${targetLat}, ${targetLng});
-        node["amenity"="clinic"](around:25000, ${targetLat}, ${targetLng});
-        node["healthcare"="centre"](around:25000, ${targetLat}, ${targetLng});
-        way["amenity"="hospital"](around:25000, ${targetLat}, ${targetLng});
-      );
-      out center 15;
-    `;
+    const delta = 0.55; // ~55-60km bounding box radius
+    const viewbox = `${targetLng - delta},${targetLat + delta},${targetLng + delta},${targetLat - delta}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const queries = [
+      `amenity=hospital&viewbox=${viewbox}&bounded=1&limit=30`,
+      `amenity=clinic&viewbox=${viewbox}&bounded=1&limit=30`,
+      `q=hospital&viewbox=${viewbox}&bounded=1&limit=30`,
+      `q=clinic&viewbox=${viewbox}&bounded=1&limit=30`,
+      `q=Primary+Health+Centre&viewbox=${viewbox}&bounded=1&limit=20`
+    ];
 
-    const response = await fetch('https://overpass-api.de/api/interpreter', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(overpassQuery)}`,
-      signal: controller.signal
-    });
+    const resultsMap = new Map<string, any>();
 
-    clearTimeout(timeoutId);
+    for (const q of queries) {
+      try {
+        const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&extratags=1&${q}`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-    if (response.ok) {
-      const json = await response.json();
-      if (json && json.elements && json.elements.length > 0) {
-        const fetchedFacilities: PHCFacility[] = json.elements.map((el: any, index: number) => {
-          const lat = el.lat || (el.center && el.center.lat) || targetLat;
-          const lng = el.lon || (el.center && el.center.lon) || targetLng;
-          const tags = el.tags || {};
-          const name = tags.name || tags['name:en'] || tags['name:mr'] || `Public Health Unit #${index + 1}`;
-          const dist = calculateHaversineDistance(targetLat, targetLng, lat, lng);
+        const response = await fetch(nomUrl, {
+          headers: { 'User-Agent': 'ArogyaSahayakApp/1.0 (health-access-initiative)' },
+          signal: controller.signal
+        });
 
-          return {
-            id: `osm_${el.id}`,
-            name: name,
-            type: tags.amenity === 'hospital' ? 'Government / Rural Hospital' : 'Primary Health Centre (PHC)',
-            district: districtFilter || tags['addr:district'] || 'Pune Rural',
-            block: tags['addr:subdistrict'] || 'Taluka Sector',
-            lat,
-            lng,
-            address: tags['addr:full'] || tags['addr:street'] || `${name}, Near Main Road`,
-            phone: tags.phone || tags['contact:phone'] || '+91 108 (Emergency)',
-            services: tags.emergency === 'yes' ? ['24x7 Emergency Triage', 'Maternity Ward', 'Free Medicines'] : ['General OPD', 'Vaccination Desk'],
-            distanceKm: dist,
-            is24x7: tags.emergency === 'yes' || tags['opening_hours'] === '24/7',
-            bedCount: tags.beds ? parseInt(tags.beds, 10) : 10,
-            medicalOfficer: tags.operator || 'Medical Officer In-Charge'
-          };
-        }).sort((a: PHCFacility, b: PHCFacility) => (a.distanceKm || 0) - (b.distanceKm || 0));
+        clearTimeout(timeoutId);
 
-        try {
-          const cacheDocRef = doc(db, 'osm_facility_cache', bucketKey);
-          setDoc(cacheDocRef, {
-            bucketKey,
-            facilities: fetchedFacilities,
-            timestamp: Date.now()
-          }).catch(e => console.warn('Background caching to Firestore failed:', e));
-        } catch (e) {
-          console.warn('Firestore save error:', e);
+        if (response.ok) {
+          const items = await response.json();
+          if (Array.isArray(items)) {
+            items.forEach((item: any) => {
+              if (item.place_id && !resultsMap.has(item.place_id.toString())) {
+                resultsMap.set(item.place_id.toString(), item);
+              }
+            });
+          }
         }
-
-        return { facilities: fetchedFacilities, isFallback: false, source: 'OpenStreetMap Live Overpass API' };
+      } catch (e: any) {
+        console.warn(`Nominatim query notice (${q}):`, e?.message || e);
       }
     }
-  } catch (err) {
-    console.warn('OSM Overpass API request failed or timed out, returning fallback PHCs:', err);
+
+    if (resultsMap.size > 0) {
+      const fetchedFacilities: PHCFacility[] = Array.from(resultsMap.values()).map((item: any, index: number) => {
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+        const addr = item.address || {};
+        const extra = item.extratags || {};
+
+        const rawName = item.name || item.display_name.split(',')[0] || `Healthcare Facility #${index + 1}`;
+        const cleanName = rawName.replace(/^[^a-zA-Z0-9\s]+/, '').trim();
+        const dist = calculateHaversineDistance(targetLat, targetLng, lat, lng);
+
+        const isHospital = item.type === 'hospital' || cleanName.toLowerCase().includes('hospital');
+
+        return {
+          id: `osm_nom_${item.place_id}`,
+          name: cleanName,
+          type: isHospital ? 'Hospital / District Medical Center' : 'Primary Health Centre (PHC) / Clinic',
+          district: addr.state_district || addr.county || addr.city || addr.town || 'District Health Division',
+          block: addr.subdistrict || addr.suburb || addr.village || 'Taluka Sector',
+          lat,
+          lng,
+          address: item.display_name || `${cleanName}, Health Sector`,
+          phone: extra.phone || extra['contact:phone'] || '+91 108 (Emergency Triage)',
+          services: isHospital ? ['24x7 Emergency Care', 'Maternity Ward', 'Free OPD Medicines'] : ['Primary Triage', 'Vaccination Desk', 'General OPD'],
+          distanceKm: dist,
+          is24x7: extra.emergency === 'yes' || extra.opening_hours === '24/7' || isHospital,
+          bedCount: extra.beds ? parseInt(extra.beds, 10) : (isHospital ? 30 : 10),
+          medicalOfficer: extra.operator || 'Medical Officer In-Charge'
+        };
+      }).sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+
+      // Save results to Firestore Cache
+      try {
+        const cacheDocRef = doc(db, 'osm_facility_cache', bucketKey);
+        setDoc(cacheDocRef, {
+          bucketKey,
+          facilities: fetchedFacilities,
+          timestamp: Date.now()
+        }).catch(e => console.warn('Background caching to Firestore failed:', e));
+      } catch (e) {
+        console.warn('Firestore save notice:', e);
+      }
+
+      console.log(`Successfully retrieved ${fetchedFacilities.length} live OpenStreetMap healthcare nodes for lat:${targetLat}, lng:${targetLng}`);
+      return {
+        facilities: filterList(fetchedFacilities),
+        isFallback: false,
+        source: 'OpenStreetMap Live Nominatim Nodes'
+      };
+    }
+  } catch (err: any) {
+    console.warn('Nominatim OSM fetch error:', err?.message || err);
   }
 
+  console.warn('All Overpass API endpoints unavailable or timed out. Falling back to grounded directory.');
   const fallbackWithDist = FALLBACK_FACILITIES.map(f => ({
     ...f,
     distanceKm: calculateHaversineDistance(targetLat, targetLng, f.lat, f.lng)
   })).sort((a, b) => a.distanceKm - b.distanceKm);
 
   return {
-    facilities: fallbackWithDist,
+    facilities: filterList(fallbackWithDist),
     isFallback: true,
     source: 'Grounded Maharashtra PHC Directory (Offline Guarantee)'
   };

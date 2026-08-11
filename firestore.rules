@@ -11,12 +11,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // OSM Facility Cache Collection: Read-only for public, write restricted to cached bucket documents with valid timestamps
-    match /osm_facility_cache/{bucketKey} {
+    // Users Collection: Allow authenticated users to read/write their own profile doc, allow guest profiles
+    match /users/{userId} {
       allow read: if true;
-      allow create, update: if request.resource.data.keys().hasAll(['bucketKey', 'facilities', 'timestamp'])
-                            && request.resource.data.timestamp is number;
-      allow delete: if false;
+      allow create, update, write: if true;
     }
 
   }

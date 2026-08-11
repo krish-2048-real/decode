@@ -15,13 +15,13 @@ export const ProfileSetupScreen: React.FC = () => {
   const { user, userProfile, saveProfile } = useAuth();
 
   const [displayName, setDisplayName] = useState(userProfile?.displayName || user?.displayName || '');
-  const [age, setAge] = useState<number>(userProfile?.age || 32);
+  const [age, setAge] = useState<number>(userProfile?.age !== undefined ? userProfile.age : 32);
   const [gender, setGender] = useState<string>(userProfile?.gender || 'Female');
   const [state, setState] = useState<string>(userProfile?.state || 'Maharashtra');
   const [district, setDistrict] = useState<string>(userProfile?.district || 'Pune Rural');
   const [village, setVillage] = useState<string>(userProfile?.village || '');
   const [phone, setPhone] = useState<string>(userProfile?.phone || '');
-  const [income, setIncome] = useState<number>(userProfile?.income || 96000);
+  const [income, setIncome] = useState<number>(userProfile?.income !== undefined ? userProfile.income : 96000);
   const [isBPL, setIsBPL] = useState<boolean>(userProfile?.isBPL ?? true);
   const [isPregnant, setIsPregnant] = useState<boolean>(userProfile?.isPregnant ?? false);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,6 +30,7 @@ export const ProfileSetupScreen: React.FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
+      console.log('Submitting user profile from ProfileSetupScreen...');
       await saveProfile({
         displayName,
         age,
@@ -43,8 +44,9 @@ export const ProfileSetupScreen: React.FC = () => {
         isPregnant,
         role: 'citizen'
       });
+      console.log('Profile saved successfully from ProfileSetupScreen.');
     } catch (err) {
-      console.error('Error saving profile:', err);
+      console.error('Error saving profile in ProfileSetupScreen:', err);
     } finally {
       setIsSaving(false);
     }

@@ -26,9 +26,36 @@ export const PhcMap: React.FC = () => {
   const [selectedFacility, setSelectedFacility] = useState<PHCFacility | null>(null);
   const [districtFilter, setDistrictFilter] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Compute live filtered facilities based on case-insensitive partial match across name, district, block, address, and type
+  const filteredFacilities = React.useMemo(() => {
+    const query = districtFilter.trim().toLowerCase();
+    if (!query) return facilities;
+
+    return facilities.filter((fac) => {
+      const nameMatch = fac.name ? fac.name.toLowerCase().includes(query) : false;
+      const districtMatch = fac.district ? fac.district.toLowerCase().includes(query) : false;
+      const blockMatch = fac.block ? fac.block.toLowerCase().includes(query) : false;
+      const addressMatch = fac.address ? fac.address.toLowerCase().includes(query) : false;
+      const typeMatch = fac.type ? fac.type.toLowerCase().includes(query) : false;
+      return nameMatch || districtMatch || blockMatch || addressMatch || typeMatch;
+    });
+  }, [facilities, districtFilter]);
+
+  // Keep selected facility in sync with filtered list
+  useEffect(() => {
+    if (filteredFacilities.length > 0) {
+      if (!selectedFacility || !filteredFacilities.some(f => f.id === selectedFacility.id)) {
+        setSelectedFacility(filteredFacilities[0]);
+      }
+    } else {
+      setSelectedFacility(null);
+    }
+  }, [filteredFacilities]);
   
-  // Geolocation states
+  // Geolocation & Search Location states
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [searchedCoords, setSearchedCoords] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [geoStatus, setGeoStatus] = useState<'requesting' | 'granted' | 'denied' | 'unsupported'>('requesting');
   const [geoError, setGeoError] = useState<string | null>(null);
   const [dataSourceInfo, setDataSourceInfo] = useState<{ isFallback: boolean; source: string }>({
@@ -36,9 +63,13 @@ export const PhcMap: React.FC = () => {
     source: 'OpenStreetMap (Live)'
   });
 
+  const activeCenter = searchedCoords || userCoords || { lat: 18.8475, lng: 73.9056 };
+
   const requestGeolocation = () => {
     setGeoStatus('requesting');
     setGeoError(null);
+    setSearchedCoords(null);
+    setDistrictFilter('');
 
     if (!('geolocation' in navigator)) {
       setGeoStatus('unsupported');
@@ -47,23 +78,65 @@ export const PhcMap: React.FC = () => {
       return;
     }
 
+    const handlePositionSuccess = (pos: GeolocationPosition) => {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      console.log(`[Geolocation Success] GPS Coordinates: Lat ${lat.toFixed(5)}, Lng ${lng.toFixed(5)} (Accuracy: ${pos.coords.accuracy}m)`);
+      setUserCoords({ lat, lng });
+      setGeoStatus('granted');
+      fetchFacilities(lat, lng);
+    };
+
+    const handlePositionError = (err: GeolocationPositionError) => {
+      let errMsg = '';
+      let codeStr = '';
+      switch (err.code) {
+        case err.PERMISSION_DENIED: // Code 1
+          codeStr = 'PERMISSION_DENIED (Code 1)';
+          errMsg = 'Permission blocked by browser or user setting.';
+          break;
+        case err.POSITION_UNAVAILABLE: // Code 2
+          codeStr = 'POSITION_UNAVAILABLE (Code 2)';
+          errMsg = 'GPS/Network positioning signal unavailable.';
+          break;
+        case err.TIMEOUT: // Code 3
+          codeStr = 'TIMEOUT (Code 3)';
+          errMsg = 'High-accuracy GPS request timed out.';
+          break;
+        default:
+          codeStr = `UNKNOWN_ERROR (Code ${err.code})`;
+          errMsg = err.message || 'Geolocation request failed.';
+      }
+
+      console.warn(`[Geolocation Error] ${codeStr}: ${err.message}`);
+
+      // If high accuracy timed out or was unavailable, retry once with low accuracy (WiFi/cellular IP triangulation)
+      if (err.code === err.TIMEOUT || err.code === err.POSITION_UNAVAILABLE) {
+        console.log('[Geolocation Retry] Attempting low-accuracy fallback...');
+        navigator.geolocation.getCurrentPosition(
+          handlePositionSuccess,
+          (retryErr) => {
+            console.warn(`[Geolocation Retry Failed] Code ${retryErr.code}: ${retryErr.message}`);
+            setGeoStatus('denied');
+            setGeoError(`${errMsg} (Retry code ${retryErr.code})`);
+            fetchFacilities(18.8475, 73.9056);
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        );
+        return;
+      }
+
+      setGeoStatus('denied');
+      setGeoError(errMsg);
+      fetchFacilities(18.8475, 73.9056);
+    };
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setUserCoords({ lat, lng });
-        setGeoStatus('granted');
-        fetchFacilities(lat, lng);
-      },
-      (err) => {
-        console.warn('Geolocation denied or failed:', err.message);
-        setGeoStatus('denied');
-        setGeoError(err.message || 'Location permission denied. Using default rural region.');
-        fetchFacilities(18.8475, 73.9056);
-      },
+      handlePositionSuccess,
+      handlePositionError,
       {
         enableHighAccuracy: true,
-        timeout: 10000,
+        timeout: 8000,
         maximumAge: 60000
       }
     );
@@ -75,10 +148,13 @@ export const PhcMap: React.FC = () => {
     let fallbackFlag = false;
     let sourceText = 'OpenStreetMap (Live)';
 
+    const targetLat = lat !== undefined ? lat : activeCenter.lat;
+    const targetLng = lng !== undefined ? lng : activeCenter.lng;
+
     try {
       const params = new URLSearchParams();
-      if (lat !== undefined) params.append('lat', lat.toString());
-      if (lng !== undefined) params.append('lng', lng.toString());
+      params.append('lat', targetLat.toString());
+      params.append('lng', targetLng.toString());
       if (dist) params.append('district', dist);
 
       const url = `/api/phcFacilities?${params.toString()}`;
@@ -97,7 +173,7 @@ export const PhcMap: React.FC = () => {
 
     if (!loadedFacilities) {
       try {
-        const fallbackRes = await getNearestFacilities(lat, lng, dist);
+        const fallbackRes = await getNearestFacilities(targetLat, targetLng, dist);
         loadedFacilities = fallbackRes.facilities;
         fallbackFlag = fallbackRes.isFallback;
         sourceText = fallbackRes.source;
@@ -110,6 +186,9 @@ export const PhcMap: React.FC = () => {
       setFacilities(loadedFacilities);
       setDataSourceInfo({ isFallback: fallbackFlag, source: sourceText });
       setSelectedFacility(loadedFacilities[0]);
+    } else {
+      setFacilities([]);
+      setSelectedFacility(null);
     }
 
     setIsLoading(false);
@@ -124,8 +203,8 @@ export const PhcMap: React.FC = () => {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      const initialLat = userCoords?.lat || 18.8475;
-      const initialLng = userCoords?.lng || 73.9056;
+      const initialLat = activeCenter.lat;
+      const initialLng = activeCenter.lng;
 
       const map = L.map(mapContainerRef.current).setView([initialLat, initialLng], 11);
 
@@ -148,7 +227,7 @@ export const PhcMap: React.FC = () => {
 
     const bounds = L.latLngBounds([]);
 
-    // 1. Add User Location Marker if available
+    // 1. Add User GPS Location Marker if available
     if (userCoords) {
       const userIcon = L.divIcon({
         className: 'user-location-marker',
@@ -172,14 +251,39 @@ export const PhcMap: React.FC = () => {
       bounds.extend([userCoords.lat, userCoords.lng]);
     }
 
-    // 2. Add Facility Markers
-    if (facilities.length > 0) {
-      facilities.forEach((fac) => {
+    // 2. Add Searched Location Pin if location search was performed
+    if (searchedCoords) {
+      const searchIcon = L.divIcon({
+        className: 'searched-location-marker',
+        html: `
+          <div style="position: relative; width: 28px; height: 28px;">
+            <div style="position: absolute; width: 28px; height: 28px; background: rgba(212, 162, 78, 0.5); border-radius: 50%; animation: pulse 2s infinite;"></div>
+            <div style="position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; background: #d97706; border: 3px solid #ffffff; border-radius: 50%; box-shadow: 0 2px 8px rgba(0,0,0,0.4); text-align: center; color: white; font-weight: bold; font-size: 10px; line-height: 14px;">🎯</div>
+          </div>
+        `,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const searchMarker = L.marker([searchedCoords.lat, searchedCoords.lng], { icon: searchIcon }).addTo(map);
+      searchMarker.bindPopup(`
+        <div style="font-family: sans-serif; padding: 4px; max-width: 220px;">
+          <strong style="color: #d97706; font-size: 13px;">🎯 Active Search Center</strong><br/>
+          <span style="font-size: 11px; color: #334155;">${searchedCoords.name}</span><br/>
+          <small style="color: #64748b;">${searchedCoords.lat.toFixed(4)}, ${searchedCoords.lng.toFixed(4)}</small>
+        </div>
+      `);
+      bounds.extend([searchedCoords.lat, searchedCoords.lng]);
+    }
+
+    // 3. Add Facility Markers
+    if (filteredFacilities.length > 0) {
+      filteredFacilities.forEach((fac) => {
         const marker = L.marker([fac.lat, fac.lng]).addTo(map);
         marker.bindPopup(`
           <div style="font-family: sans-serif; padding: 4px; max-width: 200px;">
             <strong style="color: #b45309; font-size: 13px;">${fac.name}</strong><br/>
-            <span style="font-size: 11px; color: #475569;">${fac.type} • ${fac.distanceKm ? fac.distanceKm + ' km away' : ''}</span><br/>
+            <span style="font-size: 11px; color: #475569;">${fac.type} • ${fac.distanceKm !== undefined ? fac.distanceKm + ' km away' : ''}</span><br/>
             <small style="color: #16a34a; display: block; margin-top: 2px;">
               ${fac.emergencyServices ? '🚑 24/7 Emergency Care' : '🏥 Standard Healthcare'}
             </small>
@@ -197,12 +301,67 @@ export const PhcMap: React.FC = () => {
       if (bounds.isValid()) {
         map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
       }
+    } else if (searchedCoords || userCoords) {
+      map.setView([activeCenter.lat, activeCenter.lng], 12);
     }
-  }, [facilities, userCoords]);
+  }, [filteredFacilities, userCoords, searchedCoords]);
 
-  const handleSearchDistrict = (e: React.FormEvent) => {
+  const handleSearchDistrict = async (e: React.FormEvent) => {
     e.preventDefault();
-    fetchFacilities(userCoords?.lat, userCoords?.lng, districtFilter);
+    if (!districtFilter || !districtFilter.trim()) {
+      handleClearFilter();
+      return;
+    }
+
+    const query = districtFilter.trim();
+    console.log('Location/Facility search initiated for query:', query);
+    setIsLoading(true);
+
+    try {
+      // 1. Try geocoding place name to new coordinates
+      const geocodeRes = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+      if (geocodeRes.ok) {
+        const geoData = await geocodeRes.json();
+        if (geoData && geoData.success && geoData.lat && geoData.lng) {
+          console.log(`Location geocoded successfully: "${query}" -> Lat: ${geoData.lat}, Lng: ${geoData.lng} (${geoData.displayName})`);
+          const newSearched = {
+            lat: geoData.lat,
+            lng: geoData.lng,
+            name: geoData.displayName || query
+          };
+          setSearchedCoords(newSearched);
+
+          // Center map on new location immediately
+          if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView([geoData.lat, geoData.lng], 12);
+          }
+
+          // Refetch facilities around THOSE new coordinates!
+          await fetchFacilities(geoData.lat, geoData.lng, '');
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Geocoding lookup notice:', err);
+    }
+
+    // Fallback: If not a geocodable place name, search facilities using active coordinates with text filter
+    console.log('Searching facilities around current center with text filter:', query);
+    await fetchFacilities(activeCenter.lat, activeCenter.lng, query);
+  };
+
+  const handleClearFilter = () => {
+    console.log('Clearing location search filter and restoring center');
+    setDistrictFilter('');
+    setSearchedCoords(null);
+    const baseLat = userCoords?.lat || 18.8475;
+    const baseLng = userCoords?.lng || 73.9056;
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([baseLat, baseLng], 11);
+    }
+
+    fetchFacilities(baseLat, baseLng, '');
   };
 
   return (
@@ -254,26 +413,57 @@ export const PhcMap: React.FC = () => {
           </button>
 
           {/* District Filter Input */}
-          <form onSubmit={handleSearchDistrict} className="flex items-center space-x-2 flex-1 sm:w-64">
+          <form onSubmit={handleSearchDistrict} className="flex items-center space-x-2 flex-1 sm:w-72">
             <div className="relative flex-1">
               <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
               <input
                 type="text"
                 value={districtFilter}
-                onChange={(e) => setDistrictFilter(e.target.value)}
+                onChange={(e) => {
+                  console.log('Filter query changed:', e.target.value);
+                  setDistrictFilter(e.target.value);
+                }}
                 placeholder="Filter by name/district..."
-                className="w-full pl-9 pr-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E]"
+                className="w-full pl-9 pr-7 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E]"
               />
+              {districtFilter && (
+                <button
+                  type="button"
+                  onClick={handleClearFilter}
+                  className="absolute right-2 top-2 text-stone-400 hover:text-stone-600 dark:hover:text-stone-200 text-xs font-bold px-1 rounded-full cursor-pointer"
+                  title="Clear filter"
+                >
+                  ✕
+                </button>
+              )}
             </div>
             <button
               type="submit"
-              className="px-3.5 py-2 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-colors shadow-sm cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-colors shadow-sm cursor-pointer shrink-0"
             >
               Filter
             </button>
           </form>
         </div>
       </div>
+
+      {/* Searched Location Banner */}
+      {searchedCoords && (
+        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-center justify-between text-xs text-amber-950 dark:text-amber-100">
+          <div className="flex items-center space-x-2">
+            <MapPin className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span>
+              <strong>Active Search Location:</strong> {searchedCoords.name} ({searchedCoords.lat.toFixed(4)}, {searchedCoords.lng.toFixed(4)}) — Facilities within 30km
+            </span>
+          </div>
+          <button
+            onClick={handleClearFilter}
+            className="text-[10px] bg-amber-200 dark:bg-amber-900 hover:bg-amber-300 text-amber-900 dark:text-amber-100 px-2.5 py-1 rounded-md font-bold uppercase cursor-pointer"
+          >
+            Reset to GPS Location
+          </button>
+        </div>
+      )}
 
       {/* Geolocation & Fallback Status Notice Banner */}
       {geoStatus === 'granted' && userCoords && (
@@ -291,11 +481,24 @@ export const PhcMap: React.FC = () => {
       )}
 
       {geoStatus === 'denied' && (
-        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-900 flex items-center space-x-2 text-xs text-amber-900 dark:text-amber-200">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>
-            Location access was denied or unavailable. Showing facilities for rural Pune reference coordinates. Use search filter or grant GPS permissions to update.
-          </span>
+        <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-800 flex items-start justify-between text-xs text-amber-950 dark:text-amber-100 shadow-xs">
+          <div className="flex items-start space-x-2 pr-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <strong className="block font-bold">GPS Location Access Notice ({geoError || 'Permission Denied / Signal Timeout'})</strong>
+              <p className="text-stone-700 dark:text-stone-300 text-[11px] leading-relaxed">
+                Currently showing healthcare facilities for default reference coordinates (Rural Pune). To display facilities around your exact physical location:
+                <span className="font-semibold text-amber-900 dark:text-amber-200"> Click the location/lock icon in your browser URL address bar &rarr; Select &quot;Allow Location Access&quot; &rarr; Then click &quot;Use Live GPS Location&quot;.</span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={requestGeolocation}
+            className="px-3.5 py-2 bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 font-extrabold rounded-xl text-xs cursor-pointer shadow-xs shrink-0 flex items-center space-x-1.5 transition-colors"
+          >
+            <Compass className="w-4 h-4" />
+            <span>Use Live GPS Location</span>
+          </button>
         </div>
       )}
 
@@ -317,15 +520,22 @@ export const PhcMap: React.FC = () => {
           
           <div className="absolute top-3 right-3 z-10 bg-[#FAFAF7]/90 dark:bg-[#151318]/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#E5E0D8] dark:border-stone-800 shadow-xs text-xs font-semibold text-stone-700 dark:text-stone-200 flex items-center space-x-1.5">
             <MapPin className="w-4 h-4 text-[#D4A24E]" />
-            <span>OpenStreetMap Tiles ({facilities.length} Verified Nodes)</span>
+            <span>OpenStreetMap Tiles ({filteredFacilities.length} Shown)</span>
           </div>
         </div>
 
         {/* Facilities List & Detail Panel */}
         <div className="space-y-3 h-[520px] overflow-y-auto pr-1">
           <h3 className="font-bold text-sm text-stone-800 dark:text-stone-200 flex items-center justify-between">
-            <span>Nearby Healthcare Facilities ({facilities.length})</span>
-            <span className="text-xs text-[#916323] dark:text-[#E0A845] font-bold">Sorted by Distance</span>
+            <span>Nearby Healthcare Facilities ({filteredFacilities.length})</span>
+            {districtFilter && (
+              <button
+                onClick={handleClearFilter}
+                className="text-xs text-red-600 dark:text-red-400 font-bold hover:underline cursor-pointer"
+              >
+                Clear Filter
+              </button>
+            )}
           </h3>
 
           {isLoading ? (
@@ -333,12 +543,18 @@ export const PhcMap: React.FC = () => {
               <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#D4A24E]" />
               <p>Fetching real OpenStreetMap facilities around coordinates...</p>
             </div>
-          ) : facilities.length === 0 ? (
-            <div className="p-6 text-center text-xs text-stone-500 dark:text-stone-400 bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl border border-[#E5E0D8] dark:border-[#26232D]">
-              No hospital or clinic nodes found in this 50km radius. Try clearing the filter or adjusting location.
+          ) : filteredFacilities.length === 0 ? (
+            <div className="p-6 text-center text-xs text-stone-500 dark:text-stone-400 bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl border border-[#E5E0D8] dark:border-[#26232D] space-y-2">
+              <p>No hospital or clinic nodes found matching &quot;{districtFilter}&quot;.</p>
+              <button
+                onClick={handleClearFilter}
+                className="px-3 py-1 bg-[#D4A24E] text-slate-950 font-bold rounded-lg text-xs cursor-pointer hover:bg-[#E0A845]"
+              >
+                Reset Search
+              </button>
             </div>
           ) : (
-            facilities.map((fac) => {
+            filteredFacilities.map((fac) => {
               const isSelected = selectedFacility?.id === fac.id;
 
               return (

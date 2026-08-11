@@ -18,10 +18,41 @@ import {
 
 function AppContent() {
   const { t } = useLanguage();
-  const { userProfile: authProfile } = useAuth();
+  const { userProfile: authProfile, saveProfile } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('triage');
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Default fallback object if authProfile is null
+  const activeProfile: UserProfile = authProfile || {
+    displayName: 'Citizen Patient',
+    age: 32,
+    income: 96000,
+    state: 'Maharashtra',
+    district: 'Pune Rural',
+    village: '',
+    isBPL: true,
+    isPregnant: false,
+    gender: 'Female'
+  };
+
+  const [userProfile, setUserProfileState] = useState<UserProfile>(activeProfile);
+
+  // Sync userProfile state whenever authProfile in AuthContext changes
+  useEffect(() => {
+    if (authProfile) {
+      setUserProfileState(authProfile);
+    }
+  }, [authProfile]);
+
+  // Unified updater that updates local state AND persists to AuthContext / Firestore
+  const handleSetUserProfile: React.Dispatch<React.SetStateAction<UserProfile>> = (action) => {
+    setUserProfileState(prev => {
+      const next = typeof action === 'function' ? action(prev) : action;
+      saveProfile(next);
+      return next;
+    });
+  };
 
   // If logged in as ASHA worker, default to 'alerts' tab
   useEffect(() => {
@@ -30,34 +61,13 @@ function AppContent() {
     }
   }, [authProfile?.role]);
 
-  const [userProfile, setUserProfile] = useState<UserProfile>(() => ({
-    displayName: authProfile?.displayName || 'Citizen Patient',
-    age: authProfile?.age || 32,
-    income: authProfile?.income || 96000,
-    state: authProfile?.state || 'Maharashtra',
-    district: authProfile?.district || 'Pune District',
-    isBPL: authProfile?.isBPL ?? true,
-    isPregnant: authProfile?.isPregnant ?? false,
-    gender: authProfile?.gender || 'Female',
-    uid: authProfile?.uid
-  }));
-
-  useEffect(() => {
-    if (authProfile) {
-      setUserProfile(prev => ({
-        ...prev,
-        ...authProfile
-      }));
-    }
-  }, [authProfile]);
-
   return (
     <div className="h-screen w-screen overflow-hidden bg-[#F5F1E8] dark:bg-[#0B0A0F] text-[#1A1816] dark:text-[#F3EFE6] flex flex-col font-sans transition-colors selection:bg-[#D4A24E] selection:text-slate-950">
       
       {/* Global Application Header */}
       <Header 
         userProfile={userProfile} 
-        setUserProfile={setUserProfile} 
+        setUserProfile={handleSetUserProfile} 
         setIsMobileOpen={setIsMobileOpen}
       />
 
@@ -85,7 +95,7 @@ function AppContent() {
             {activeTab === 'schemes' && (
               <SchemesMatcher
                 userProfile={userProfile}
-                setUserProfile={setUserProfile}
+                setUserProfile={handleSetUserProfile}
               />
             )}
 

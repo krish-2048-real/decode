@@ -162,7 +162,10 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
                   </div>
                   <div>
                     <span className="text-stone-500 block text-[9px] uppercase">District / Sector</span>
-                    <span className="text-stone-200 font-bold">{userProfile.state || 'Maharashtra'}</span>
+                    <span className="text-stone-200 font-bold">
+                      {userProfile.district || userProfile.state || 'Maharashtra'}
+                      {userProfile.village ? ` (${userProfile.village})` : ''}
+                    </span>
                   </div>
                 </div>
 

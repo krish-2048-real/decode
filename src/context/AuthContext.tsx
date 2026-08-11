@@ -63,27 +63,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUserProfile(profileData);
             setNeedsProfileSetup(false);
           } else {
-            setNeedsProfileSetup(true);
-            setUserProfile({
+            // Check if there was a local saved profile to populate initial setup
+            const localSaved = localStorage.getItem('arogya_saved_profile');
+            const parsedLocal = localSaved ? JSON.parse(localSaved) : null;
+            const initialProf: UserProfile = {
               uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || '',
-              email: firebaseUser.email || '',
+              displayName: firebaseUser.displayName || parsedLocal?.displayName || '',
+              email: firebaseUser.email || parsedLocal?.email || '',
               role: 'citizen',
-              age: 30,
-              income: 96000,
-              state: 'Maharashtra',
-              district: 'Pune District',
-              isBPL: true,
-              isPregnant: false,
-              gender: 'Female'
-            });
+              age: parsedLocal?.age ?? 32,
+              income: parsedLocal?.income ?? 96000,
+              state: parsedLocal?.state || 'Maharashtra',
+              district: parsedLocal?.district || 'Pune Rural',
+              village: parsedLocal?.village || '',
+              isBPL: parsedLocal?.isBPL ?? true,
+              isPregnant: parsedLocal?.isPregnant ?? false,
+              gender: parsedLocal?.gender || 'Female',
+              phone: parsedLocal?.phone || ''
+            };
+            setUserProfile(initialProf);
+            setNeedsProfileSetup(true);
           }
         } catch (err) {
           console.error('Error fetching user profile from Firestore:', err);
           setNeedsProfileSetup(true);
         }
       } else {
-        if (!isGuest) {
+        // Unauthenticated - check if guest mode was active in localStorage
+        const storedIsGuest = localStorage.getItem('arogya_is_guest');
+        const storedGuestProfile = localStorage.getItem('arogya_guest_profile');
+        if (storedIsGuest === 'true' && storedGuestProfile) {
+          try {
+            const parsed = JSON.parse(storedGuestProfile);
+            setIsGuest(true);
+            setUserProfile(parsed);
+            setNeedsProfileSetup(false);
+          } catch (e) {
+            setUserProfile(null);
+            setNeedsProfileSetup(false);
+          }
+        } else {
           setUserProfile(null);
           setNeedsProfileSetup(false);
         }
@@ -92,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => unsubscribe();
-  }, [isGuest]);
+  }, []);
 
   const loginWithGoogle = async () => {
     setLoading(true);
@@ -141,30 +160,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const saveProfile = async (data: Partial<UserProfile>) => {
-    if (user) {
-      const updated: UserProfile = {
-        ...(userProfile || {}),
-        ...data,
-        uid: user.uid,
-        displayName: data.displayName || userProfile?.displayName || user.displayName || 'Citizen Patient',
-        email: userProfile?.email || user.email || '',
-        createdAt: userProfile?.createdAt || new Date().toISOString()
-      };
-      await setDoc(doc(db, 'users', user.uid), updated, { merge: true });
-      setUserProfile(updated);
-      setNeedsProfileSetup(false);
-    } else if (isGuest) {
-      const updated: UserProfile = {
-        ...(userProfile || {}),
-        ...data,
-        uid: 'guest_user_123'
-      };
-      setUserProfile(updated);
-      setNeedsProfileSetup(false);
+    const activeUid = user ? user.uid : (userProfile?.uid || 'guest_user_123');
+    const updated: UserProfile = {
+      ...(userProfile || {}),
+      ...data,
+      uid: activeUid,
+      displayName: data.displayName || userProfile?.displayName || user?.displayName || 'Citizen Patient',
+      email: userProfile?.email || user?.email || '',
+      createdAt: userProfile?.createdAt || new Date().toISOString()
+    };
+
+    // Cache locally for offline / guest resilience
+    localStorage.setItem('arogya_saved_profile', JSON.stringify(updated));
+    if (!user) {
+      localStorage.setItem('arogya_is_guest', 'true');
+      localStorage.setItem('arogya_guest_profile', JSON.stringify(updated));
     }
+
+    if (user) {
+      try {
+        console.log('Writing user profile to Firestore:', user.uid);
+        await setDoc(doc(db, 'users', user.uid), updated, { merge: true });
+        console.log('Firestore profile setDoc resolved successfully');
+      } catch (err) {
+        console.error('Error persisting profile to Firestore (proceeding with local session):', err);
+      }
+    } else {
+      console.log('Guest or local mode: profile saved locally');
+    }
+
+    // Always update context profile and clear setup flag to transition UI
+    setUserProfile(updated);
+    setNeedsProfileSetup(false);
   };
 
   const logout = async () => {
+    localStorage.removeItem('arogya_is_guest');
+    localStorage.removeItem('arogya_guest_profile');
+    localStorage.removeItem('arogya_saved_profile');
     setIsGuest(false);
     setUser(null);
     setUserProfile(null);
@@ -174,19 +207,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginAsGuest = () => {
     setIsGuest(true);
     setUser(null);
-    const guestProfile: UserProfile = {
-      uid: 'guest_user_123',
-      displayName: 'Guest Citizen',
-      email: 'guest@arogyasahayak.in',
-      role: 'citizen',
-      age: 32,
-      income: 96000,
-      state: 'Maharashtra',
-      district: 'Pune District',
-      isBPL: true,
-      isPregnant: false,
-      gender: 'Female'
-    };
+    const storedGuestProfile = localStorage.getItem('arogya_guest_profile');
+    let guestProfile: UserProfile;
+    if (storedGuestProfile) {
+      try {
+        guestProfile = JSON.parse(storedGuestProfile);
+      } catch (e) {
+        guestProfile = {
+          uid: 'guest_user_123',
+          displayName: 'Guest Citizen',
+          email: 'guest@arogyasahayak.in',
+          role: 'citizen',
+          age: 32,
+          income: 96000,
+          state: 'Maharashtra',
+          district: 'Pune Rural',
+          village: '',
+          isBPL: true,
+          isPregnant: false,
+          gender: 'Female'
+        };
+      }
+    } else {
+      guestProfile = {
+        uid: 'guest_user_123',
+        displayName: 'Guest Citizen',
+        email: 'guest@arogyasahayak.in',
+        role: 'citizen',
+        age: 32,
+        income: 96000,
+        state: 'Maharashtra',
+        district: 'Pune Rural',
+        village: '',
+        isBPL: true,
+        isPregnant: false,
+        gender: 'Female'
+      };
+    }
+    localStorage.setItem('arogya_is_guest', 'true');
+    localStorage.setItem('arogya_guest_profile', JSON.stringify(guestProfile));
     setUserProfile(guestProfile);
     setNeedsProfileSetup(false);
     setLoading(false);

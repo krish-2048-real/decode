@@ -69,6 +69,43 @@ async function startServer() {
     }
   });
 
+  // Geocode location search endpoint via Nominatim API
+  app.get("/api/geocode", async (req, res) => {
+    try {
+      const q = req.query.q as string;
+      if (!q || !q.trim()) {
+        return res.status(400).json({ error: "Missing query parameter 'q'." });
+      }
+
+      const queryStr = q.trim();
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryStr)}&limit=1`;
+      
+      const response = await fetch(nominatimUrl, {
+        headers: {
+          'User-Agent': 'ArogyaSahayakApp/1.0 (health-access-initiative)'
+        }
+      });
+
+      if (response.ok) {
+        const results = await response.json();
+        if (Array.isArray(results) && results.length > 0) {
+          const match = results[0];
+          return res.json({
+            success: true,
+            lat: parseFloat(match.lat),
+            lng: parseFloat(match.lon),
+            displayName: match.display_name
+          });
+        }
+      }
+
+      return res.json({ success: false, message: `Location "${queryStr}" not found in OpenStreetMap database.` });
+    } catch (err: any) {
+      console.error("Error in /api/geocode:", err);
+      res.status(500).json({ error: "Geocoding service error." });
+    }
+  });
+
   // PHC Facilities endpoint with OSM Overpass integration
   app.get("/api/phcFacilities", async (req, res) => {
     try {
