@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { SchemeMatchResult, UserProfile } from '../types/health';
-import { matchSchemes } from '../../backend/services/schemesService';
+import { matchSchemes } from '../services/schemesService';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   FileCheck2, 
   CheckCircle2, 
@@ -18,6 +19,7 @@ interface SchemesMatcherProps {
 }
 
 export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, setUserProfile }) => {
+  const { t, currentLanguage } = useLanguage();
   const [matches, setMatches] = useState<SchemeMatchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +41,8 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
           income: calcIncome,
           state: calcState,
           is_pregnant: calcPreg,
-          is_bpl: calcBPL
+          is_bpl: calcBPL,
+          language: currentLanguage
         })
       });
 
@@ -63,7 +66,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
         state: calcState,
         is_pregnant: calcPreg,
         is_bpl: calcBPL
-      });
+      }, currentLanguage);
       setMatches(localMatches);
     }
 
@@ -72,7 +75,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
 
   useEffect(() => {
     calculateMatches();
-  }, [userProfile]);
+  }, [userProfile, currentLanguage]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -86,13 +89,13 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
             </div>
             <div>
               <div className="text-[10px] font-bold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase">
-                Government Benefit Schemes
+                {t('govtSchemesTitle')}
               </div>
               <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">
-                Health Subsidies & Cash Assistance
+                {t('healthSubsidiesHeader')}
               </h2>
               <p className="text-xs text-stone-500 dark:text-stone-400">
-                Automated eligibility calculation against Ayushman Bharat (PM-JAY), JSY, RSBY, PMMVY & NHM.
+                {t('schemesSubtitle')}
               </p>
             </div>
           </div>
@@ -102,7 +105,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
         <div className="p-4 rounded-xl bg-stone-100/90 dark:bg-stone-900/60 border border-[#E5E0D8] dark:border-stone-800 grid grid-cols-2 md:grid-cols-5 gap-3 items-center">
           <div>
             <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400 block mb-1">
-              Age (Years)
+              {t('ageYears')}
             </label>
             <input
               type="number"
@@ -117,7 +120,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
 
           <div>
             <label className="text-[11px] font-bold text-stone-500 dark:text-stone-400 block mb-1">
-              Annual Income (₹)
+              {t('annualIncome')}
             </label>
             <input
               type="number"
@@ -139,7 +142,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
               className="w-4 h-4 rounded text-[#D4A24E] focus:ring-[#D4A24E] cursor-pointer"
             />
             <label htmlFor="bplCheck" className="text-xs font-bold text-stone-800 dark:text-stone-200 cursor-pointer">
-              BPL Ration Card
+              {t('bplRationCard')}
             </label>
           </div>
 
@@ -152,7 +155,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
               className="w-4 h-4 rounded text-[#D4A24E] focus:ring-[#D4A24E] cursor-pointer"
             />
             <label htmlFor="pregCheck" className="text-xs font-bold text-stone-800 dark:text-stone-200 cursor-pointer">
-              Pregnant / Lactating
+              {t('pregnantLactating')}
             </label>
           </div>
 
@@ -160,7 +163,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
             onClick={calculateMatches}
             className="px-4 py-2 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-md cursor-pointer"
           >
-            Re-calculate
+            {t('recalculate')}
           </button>
         </div>
       </div>
@@ -193,11 +196,11 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
                   {matched ? (
                     <span className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 text-xs font-extrabold flex items-center space-x-1 shrink-0">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>QUALIFIED</span>
+                      <span>{t('qualified')}</span>
                     </span>
                   ) : (
                     <span className="px-3 py-1 rounded-full bg-stone-200 text-stone-700 dark:bg-stone-800 dark:text-stone-400 text-xs font-bold shrink-0">
-                      PARTIAL MATCH
+                      {t('partialMatch')}
                     </span>
                   )}
                 </div>
@@ -210,7 +213,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
                 <div className="p-3.5 rounded-xl bg-[#D4A24E]/10 dark:bg-[#D4A24E]/15 border border-[#D4A24E]/25 text-xs space-y-1 mb-4">
                   <div className="font-bold text-[#916323] dark:text-[#E0A845] flex items-center space-x-1">
                     <IndianRupee className="w-3.5 h-3.5 text-[#B68434] dark:text-[#E0A845]" />
-                    <span>Coverage & Cash Benefits:</span>
+                    <span>{t('coverageCashBenefits')}</span>
                   </div>
                   <p className="text-stone-800 dark:text-stone-200 font-medium">
                     {scheme.benefits}
@@ -221,7 +224,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
                 <div className="p-3.5 rounded-xl bg-stone-100/90 dark:bg-stone-900/60 border border-[#E5E0D8] dark:border-stone-800 text-xs space-y-2">
                   <div className="font-bold text-stone-800 dark:text-stone-200 flex items-center space-x-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-[#D4A24E]" />
-                    <span>Why You Qualify (Matched Criteria):</span>
+                    <span>{t('whyYouQualify')}</span>
                   </div>
                   <p className="text-stone-700 dark:text-stone-300 leading-relaxed font-normal">
                     {qualificationReason}
@@ -246,7 +249,7 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
                   onClick={() => alert(`To enroll in ${scheme.shortName}, present your BPL card or Aadhaar card at your nearest PHC Helpdesk or Kiosk.`)}
                   className="flex items-center space-x-1 text-xs font-bold text-[#916323] dark:text-[#E0A845] hover:text-[#B68434] dark:hover:text-[#E0A845] transition-colors cursor-pointer"
                 >
-                  <span>PHC Enrollment Instructions</span>
+                  <span>{t('phcEnrollmentInstructions')}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
@@ -259,3 +262,4 @@ export const SchemesMatcher: React.FC<SchemesMatcherProps> = ({ userProfile, set
     </div>
   );
 };
+

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { AshaAlert } from '../types/health';
-import { getAshaAlertsAsync } from '../../backend/services/alertsService';
+import { getAshaAlertsAsync } from '../services/alertsService';
 import { QrScannerModal } from './QrScannerModal';
 import { VillageHealthAdvisoryModal } from './VillageHealthAdvisoryModal';
 import { db, collection, query, orderBy, onSnapshot } from '../lib/firebase';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   ShieldAlert, 
   AlertTriangle, 
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export const AshaAlertsQueue: React.FC = () => {
+  const { t } = useLanguage();
   const [alerts, setAlerts] = useState<AshaAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSystemHealthy, setIsSystemHealthy] = useState(true);
@@ -123,28 +125,28 @@ export const AshaAlertsQueue: React.FC = () => {
       <div className="bg-[#151318] text-white rounded-xl p-3 border border-[#26232D] shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center space-x-2 font-bold text-stone-300">
           <Activity className="w-4 h-4 text-emerald-400 animate-pulse" />
-          <span>System Health Monitor:</span>
+          <span>{t('systemHealthMonitor')}</span>
         </div>
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse" />
-            <span className="font-semibold text-stone-300">AI Triage Engine:</span>
-            <span className="text-emerald-400 font-bold">Operational</span>
+            <span className="font-semibold text-stone-300">{t('aiTriageEngine')}</span>
+            <span className="text-emerald-400 font-bold">{t('operational')}</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="font-semibold text-stone-300">Scheme Matching:</span>
-            <span className="text-emerald-400 font-bold">Operational</span>
+            <span className="font-semibold text-stone-300">{t('schemeMatching')}</span>
+            <span className="text-emerald-400 font-bold">{t('operational')}</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="font-semibold text-stone-300">Facility Locator:</span>
-            <span className="text-emerald-400 font-bold">Operational</span>
+            <span className="font-semibold text-stone-300">{t('facilityLocator')}</span>
+            <span className="text-emerald-400 font-bold">{t('operational')}</span>
           </div>
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-            <span className="font-semibold text-stone-300">Outbreak Detection:</span>
-            <span className="text-emerald-400 font-bold">Operational</span>
+            <span className="font-semibold text-stone-300">{t('outbreakDetection')}</span>
+            <span className="text-emerald-400 font-bold">{t('operational')}</span>
           </div>
         </div>
       </div>
@@ -157,18 +159,18 @@ export const AshaAlertsQueue: React.FC = () => {
           </div>
           <div>
             <div className="text-[10px] font-bold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase">
-              Emergency Escalation Queue
+              {t('emergencyEscalationQueue')}
             </div>
             <div className="flex items-center space-x-2 mt-0.5">
               <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">
-                ASHA & ANM Alert Dispatch
+                {t('ashaAlertDispatch')}
               </h2>
               <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-black">
-                {alerts.filter(a => a.status === 'pending').length} PENDING
+                {alerts.filter(a => a.status === 'pending').length} {t('pendingLabel')}
               </span>
             </div>
             <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-              Automated high-severity symptom triggers for local village healthcare workers.
+              {t('ashaDispatchDesc')}
             </p>
           </div>
         </div>
@@ -179,7 +181,7 @@ export const AshaAlertsQueue: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-[#151318] dark:bg-stone-100 text-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer border border-[#D4A24E]/40"
           >
             <Sparkles className="w-4 h-4 text-[#D4A24E]" />
-            <span>Generate Village Advisory</span>
+            <span>{t('generateVillageAdvisory')}</span>
           </button>
 
           <button
@@ -187,7 +189,7 @@ export const AshaAlertsQueue: React.FC = () => {
             className="px-4 py-2.5 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
-            <span>Scan Patient Card</span>
+            <span>{t('scanPatientCard')}</span>
           </button>
 
           <button
@@ -195,7 +197,7 @@ export const AshaAlertsQueue: React.FC = () => {
             className="p-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors flex items-center space-x-1.5 text-xs font-bold cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Refresh Queue</span>
+            <span className="hidden sm:inline">{t('refreshQueue')}</span>
           </button>
         </div>
       </div>
@@ -209,10 +211,10 @@ export const AshaAlertsQueue: React.FC = () => {
             </div>
             <div>
               <h3 className="font-serif text-lg font-bold text-stone-900 dark:text-stone-100">
-                No Active Emergency Escalations
+                {t('noActiveEscalations')}
               </h3>
               <p className="text-xs text-stone-500 dark:text-stone-400 max-w-md mx-auto mt-1">
-                The ASHA dispatch queue is currently clear. When patients report red-flag emergency symptoms during triage sessions, automated alerts will appear here in real-time.
+                {t('noEscalationsDesc')}
               </p>
             </div>
             <button
@@ -220,7 +222,7 @@ export const AshaAlertsQueue: React.FC = () => {
               className="px-4 py-2 rounded-xl bg-stone-900 dark:bg-stone-100 text-stone-100 dark:text-stone-900 text-xs font-bold transition-all shadow-md inline-flex items-center space-x-2 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-[#D4A24E]" />
-              <span>Generate Weekly Village Health Advisory Poster</span>
+              <span>{t('generateWeeklyAdvisory')}</span>
             </button>
           </div>
         ) : (
@@ -246,7 +248,7 @@ export const AshaAlertsQueue: React.FC = () => {
                         : 'bg-amber-600 text-white'
                     }`}
                   >
-                    {alert.severity} ESCALATION
+                    {alert.severity} {t('escalationLabel')}
                   </span>
 
                   <span className="text-xs text-stone-400 flex items-center space-x-1">
@@ -262,7 +264,7 @@ export const AshaAlertsQueue: React.FC = () => {
 
                 <div className="flex items-center space-x-2">
                   <span className="text-xs font-mono text-stone-400">
-                    Anonymized Hash: {alert.userIdHash.substring(0, 10)}...
+                    {t('anonymizedHash')} {alert.userIdHash.substring(0, 10)}...
                   </span>
                 </div>
               </div>
@@ -270,7 +272,7 @@ export const AshaAlertsQueue: React.FC = () => {
               {/* Symptom Badges & Patient Message */}
               <div className="space-y-3">
                 <div className="flex flex-col space-y-1.5 items-start">
-                  <span className="text-xs font-bold text-stone-500 dark:text-stone-400">Trigger Symptoms (Vertical Stack):</span>
+                  <span className="text-xs font-bold text-stone-500 dark:text-stone-400">{t('triggerSymptoms')}</span>
                   {alert.symptomTags?.map((tag, idx) => (
                     <div
                       key={idx}
@@ -286,14 +288,14 @@ export const AshaAlertsQueue: React.FC = () => {
                 </div>
 
                 <div className="p-3 rounded-xl bg-red-50/80 dark:bg-red-950/40 border border-red-200 dark:border-red-900/60 text-xs text-red-900 dark:text-red-200 space-y-0.5">
-                  <span className="font-bold">Reason for Trigger:</span> {alert.escalationReason}
+                  <span className="font-bold">{t('reasonForTrigger')}</span> {alert.escalationReason}
                 </div>
               </div>
 
               {/* Status Action Buttons */}
               <div className="mt-5 pt-4 border-t border-[#E5E0D8] dark:border-stone-800 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs font-bold text-stone-500">Status:</span>
+                  <span className="text-xs font-bold text-stone-500">{t('statusLabel')}</span>
                   <span
                     className={`px-2.5 py-1 rounded-md text-xs font-extrabold uppercase ${
                       alert.status === 'visited'
@@ -314,7 +316,7 @@ export const AshaAlertsQueue: React.FC = () => {
                       className="px-3.5 py-2 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-bold transition-colors shadow-sm flex items-center space-x-1 cursor-pointer"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
-                      <span>Acknowledge Alert</span>
+                      <span>{t('acknowledgeAlert')}</span>
                     </button>
                   )}
 
@@ -324,7 +326,7 @@ export const AshaAlertsQueue: React.FC = () => {
                       className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-sm flex items-center space-x-1 cursor-pointer"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Mark Home Visit Done</span>
+                      <span>{t('markHomeVisitDone')}</span>
                     </button>
                   )}
 
@@ -333,7 +335,7 @@ export const AshaAlertsQueue: React.FC = () => {
                     className="px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-sm flex items-center space-x-1"
                   >
                     <PhoneCall className="w-3.5 h-3.5" />
-                    <span>Dispatch 108 Ambulance</span>
+                    <span>{t('dispatchAmbulance')}</span>
                   </a>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ChatTurn, TriageResult, UserProfile } from '../types/health';
-import { runTriageSymptom } from '../../backend/services/triageService';
+import { runTriageSymptom } from '../services/triageService';
 import { db, doc, setDoc, getDoc } from '../lib/firebase';
 import { AgentReasoningTrace } from './AgentReasoningTrace';
 import { DigitalHealthCardModal } from './DigitalHealthCardModal';
@@ -300,10 +300,10 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
         <div className="flex items-center space-x-2">
           <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></div>
           <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
-            AI Triage Engine Active
+            {t('triageEngineActive')}
           </span>
           <span className="text-xs text-stone-500 dark:text-stone-400 hidden sm:inline">
-            • Instant Clinical Guidance & Private Consult
+            {t('instantClinicalGuidance')}
           </span>
         </div>
 
@@ -319,7 +319,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
             title="Toggle Private Consult mode to bypass local village worker queue"
           >
             {preferPrivate ? <Lock className="w-3.5 h-3.5 text-white" /> : <Unlock className="w-3.5 h-3.5 text-stone-500" />}
-            <span>{preferPrivate ? 'Private Consult Mode ON' : 'Private Mode Off'}</span>
+            <span>{preferPrivate ? t('privateConsultModeOn') : t('privateConsultModeOff')}</span>
           </button>
 
           <button
@@ -327,7 +327,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
             className="flex items-center space-x-1.5 px-3 py-1.5 rounded-lg bg-[#D4A24E]/15 hover:bg-[#D4A24E]/25 text-[#916323] dark:text-[#E0A845] border border-[#D4A24E]/30 text-xs font-extrabold transition-all shadow-xs cursor-pointer"
           >
             <QrCode className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Show My Health Pass</span>
+            <span className="hidden sm:inline">{t('showHealthPass')}</span>
           </button>
         </div>
       </div>
@@ -384,7 +384,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                       {triage.visual_analysis && (
                         <span className="flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-800">
                           <Eye className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
-                          <span>Visual Assessment (CV)</span>
+                          <span>{t('visualAssessment')}</span>
                         </span>
                       )}
 
@@ -392,14 +392,14 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                       {triage.is_private_routing && (
                         <span className="flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-full bg-purple-100 text-purple-900 dark:bg-purple-950 dark:text-purple-200 border border-purple-300 dark:border-purple-800">
                           <Lock className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                          <span>Confidential Private Route</span>
+                          <span>{t('confidentialPrivateRoute')}</span>
                         </span>
                       )}
 
                       {triage.escalate_immediately && !triage.is_private_routing && (
                         <span className="flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border border-red-300 dark:border-red-800">
                           <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                          <span>IMMEDIATE ESCALATION</span>
+                          <span>{t('immediateEscalation')}</span>
                         </span>
                       )}
                     </div>
@@ -430,17 +430,17 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 font-black text-cyan-900 dark:text-cyan-200 text-xs tracking-wide uppercase">
                         <Camera className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                        <span>Visual Assessment Layer</span>
+                        <span>{t('visualAssessmentLayer')}</span>
                       </div>
                       <span className="px-2 py-0.5 rounded-md bg-cyan-200 dark:bg-cyan-900 text-cyan-900 dark:text-cyan-100 text-[10px] font-extrabold uppercase">
-                        {triage.visual_analysis.urgency} URGENCY
+                        {triage.visual_analysis.urgency} {t('urgency')}
                       </span>
                     </div>
                     <p className="text-xs text-cyan-950 dark:text-cyan-100 leading-relaxed font-medium">
                       {triage.visual_analysis.description}
                     </p>
                     <div className="text-[11px] font-semibold text-cyan-800 dark:text-cyan-300 pt-1 border-t border-cyan-200 dark:border-cyan-800">
-                      Concern Category: <span className="font-bold">{triage.visual_analysis.concern_category}</span>
+                      {t('concernCategory')} <span className="font-bold">{triage.visual_analysis.concern_category}</span>
                     </div>
                   </div>
                 )}
@@ -450,7 +450,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                   <div className="mb-4 p-4 rounded-xl bg-purple-50 dark:bg-purple-950/80 border-2 border-purple-300 dark:border-purple-800 space-y-3">
                     <div className="flex items-center space-x-2 text-purple-900 dark:text-purple-200 font-extrabold text-xs">
                       <Lock className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
-                      <span>CONFIDENTIAL PRIVATE ROUTE ACTIVE</span>
+                      <span>{t('confidentialActive')}</span>
                     </div>
                     <p className="text-xs text-purple-950 dark:text-purple-100 leading-relaxed">
                       This topic is sensitive, so we're connecting you with a private option instead of your local health worker, to protect your privacy. Your record was explicitly excluded from the village worker alert queue.
@@ -479,7 +479,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
 
                 {/* Advice Content Text */}
                 <div className="text-sm sm:text-base leading-relaxed whitespace-pre-line font-normal">
-                  {msg.text}
+                  {msg.id === 'welcome_1' ? t('welcomeAssistantMsg') : msg.text}
                 </div>
 
                 {/* Standard Public Escalation Notice (non-private) */}
@@ -487,11 +487,11 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                   <div className="mt-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-900 text-red-900 dark:text-red-200 text-xs space-y-1">
                     <div className="flex items-center space-x-1.5 font-bold">
                       <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      <span>CRITICAL SAFETY RED FLAG:</span>
+                      <span>{t('criticalRedFlag')}</span>
                     </div>
                     <p>{triage.escalation_reason}</p>
                     <p className="text-[11px] font-semibold text-red-700 dark:text-red-300 pt-1">
-                      ASHA Alert auto-dispatched to district response queue.
+                      {t('ashaAlertDispatched')}
                     </p>
                   </div>
                 )}
@@ -531,23 +531,23 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                         <div className="flex items-center justify-between text-[11px] font-bold">
                           <span className="flex items-center space-x-1 text-stone-700 dark:text-stone-300">
                             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                            <span>Guideline Grounding Confidence:</span>
+                            <span>{t('guidelineConfidence')}</span>
                           </span>
                           <span className="text-[#916323] dark:text-[#E0A845] font-extrabold">
-                            Grounded in 4 Verified Health Guidelines
+                            {t('groundedIn4Guidelines')}
                           </span>
                         </div>
                         <div className="w-full h-2 rounded-full bg-stone-200 dark:bg-stone-800 overflow-hidden">
                           <div className="h-full bg-linear-to-r from-[#D4A24E] via-[#E0A845] to-[#B68434] rounded-full w-full transition-all duration-500" />
                         </div>
                         <p className="text-[10px] text-stone-500 dark:text-stone-400">
-                          Protocol Sources: MoHFW Rural Triage Standard, NHA Scheme Index, ICMR Emergency Directives, ASHA Field Manual
+                          {t('protocolSources')}
                         </p>
                       </div>
 
                       {/* Vertical Symptoms Stack */}
                       <div className="flex flex-col space-y-1.5 items-start w-full">
-                        <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">Identified Symptoms:</span>
+                        <span className="text-[11px] font-bold text-stone-500 dark:text-stone-400">{t('identifiedSymptoms')}</span>
                         {triage.symptoms?.map((s, idx) => (
                           <div key={idx} className="px-2.5 py-1 rounded-md bg-[#FAFAF7] dark:bg-[#151318] border border-[#E5E0D8] dark:border-stone-800 text-[11px] font-semibold text-stone-700 dark:text-stone-300 w-full text-left">
                             • {s}
@@ -580,7 +580,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
         {isLoading && (
           <div className="flex items-center space-x-3 text-stone-500 dark:text-stone-400 p-4 bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl max-w-sm border border-[#E5E0D8] dark:border-stone-800">
             <RefreshCw className="w-4 h-4 animate-spin text-[#D4A24E]" />
-            <span className="text-xs font-medium">Analyzing symptoms with Gemini 3.6 Flash...</span>
+            <span className="text-xs font-medium">{t('analyzingSymptoms')}</span>
           </div>
         )}
 
@@ -589,7 +589,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
 
       {/* Suggested Quick Symptoms Prompts */}
       <div className="px-4 py-2 bg-stone-100/90 dark:bg-stone-900/60 border-t border-[#E5E0D8] dark:border-stone-800 flex items-center space-x-2 overflow-x-auto no-scrollbar">
-        <span className="text-[10px] font-extrabold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase shrink-0">Quick Demos:</span>
+        <span className="text-[10px] font-extrabold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase shrink-0">{t('quickDemosLabel')}</span>
         
         {/* Part A Test Button */}
         <button
@@ -600,21 +600,31 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
           className="px-2.5 py-1 rounded-lg bg-purple-100 dark:bg-purple-950/70 text-purple-900 dark:text-purple-200 border border-purple-300 dark:border-purple-800 text-xs shrink-0 hover:bg-purple-200 font-bold flex items-center space-x-1 cursor-pointer"
         >
           <HeartHandshake className="w-3.5 h-3.5 text-purple-600" />
-          <span>Part A: Sensitive Mental Health (Private Route)</span>
+          <span>{t('demoSensitiveMental')}</span>
         </button>
 
         <button
-          onClick={() => handleSendMessage("मुझे 2 दिन से तेज बुखार, सर्दी और बदन दर्द है")}
+          onClick={() => handleSendMessage(
+            language === 'hi' ? "मुझे 2 दिन से तेज बुखार, सर्दी और बदन दर्द है" :
+            language === 'mr' ? "मला २ दिवसांपासून तीव्र ताप, सर्दी आणि अंगात कळ आहे" :
+            language === 'ta' ? "எனக்கு 2 நாட்களாக அதிக காய்ச்சல் மற்றும் உடல் வலி உள்ளது" :
+            "I have high fever, cold and body pain for 2 days"
+          )}
           className="px-2.5 py-1 rounded-lg bg-[#FAFAF7] dark:bg-[#151318] text-stone-700 dark:text-stone-300 border border-[#E5E0D8] dark:border-stone-800 text-xs shrink-0 hover:border-[#D4A24E] hover:text-[#916323] transition-colors cursor-pointer"
         >
-          हिंदी: तेज बुखार व दर्द
+          {t('demoFeverPain')}
         </button>
 
         <button
-          onClick={() => handleSendMessage("Chest pressure, sweating and left arm numbness")}
+          onClick={() => handleSendMessage(
+            language === 'hi' ? "सीने में बहुत तेज़ दर्द, भारीपन, पसीना और बाएं हाथ में सुन्नता हो रही है" :
+            language === 'mr' ? "छातीत तीव्र वेदना, घाम येणे आणि डाव्या हाताला मुंग्या येत आहेत" :
+            language === 'ta' ? "நெஞ்சு வலி, அதிக வேர்வை மற்றும் இடது கை மரத்துப் போதல்" :
+            "Chest pressure, sweating and left arm numbness"
+          )}
           className="px-2.5 py-1 rounded-lg bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900 text-xs shrink-0 hover:bg-red-100 transition-colors font-medium cursor-pointer"
         >
-          Red-Flag Emergency
+          {t('demoRedFlag')}
         </button>
       </div>
 
@@ -626,9 +636,9 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
             <div>
               <div className="text-xs font-bold text-cyan-900 dark:text-cyan-200 flex items-center space-x-1">
                 <Camera className="w-3.5 h-3.5 text-cyan-600" />
-                <span>Photograph Attached</span>
+                <span>{t('photoAttached')}</span>
               </div>
-              <div className="text-[10px] text-cyan-700 dark:text-cyan-400">Ready for visual CV analysis</div>
+              <div className="text-[10px] text-cyan-700 dark:text-cyan-400">{t('readyForCv')}</div>
             </div>
           </div>
           <button
@@ -689,7 +699,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
             type="text"
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
-            placeholder={isListening ? t('micListening') : (selectedImage ? 'Add text notes about the photo or press send...' : t('typeSymptomsPlaceholder'))}
+            placeholder={isListening ? t('micListening') : (selectedImage ? t('addNotesPlaceholder') : t('typeSymptomsPlaceholder'))}
             disabled={isLoading}
             className="flex-1 px-4 py-3 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-sm text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E] transition-all placeholder:text-stone-400"
           />

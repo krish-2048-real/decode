@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   HeartPulse, 
   ShieldCheck, 
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
+  const { t } = useLanguage();
   const { loginWithGoogle, loginAsAsha, createAshaAccount, loginAsGuest } = useAuth();
   const [activeRole, setActiveRole] = useState<'citizen' | 'asha'>('citizen');
   const [ashaEmail, setAshaEmail] = useState('');
@@ -81,10 +83,10 @@ export const LoginScreen: React.FC = () => {
             <HeartPulse className="w-8 h-8 animate-pulse" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
-            Arogya Sahayak
+            AROGYA SAHAYAK
           </h1>
           <p className="text-xs text-slate-400">
-            Rural Health Triage & Scheme Eligibility Assistant
+            {t('appSubtitle')}
           </p>
         </div>
 
@@ -102,7 +104,7 @@ export const LoginScreen: React.FC = () => {
             }`}
           >
             <ShieldCheck className="w-4 h-4" />
-            <span>Citizen Patient</span>
+            <span>{t('citizenPatientTab')}</span>
           </button>
 
           <button
@@ -117,7 +119,7 @@ export const LoginScreen: React.FC = () => {
             }`}
           >
             <UserCheck className="w-4 h-4" />
-            <span>ASHA Worker</span>
+            <span>{t('ashaWorkerTab')}</span>
           </button>
         </div>
 
@@ -133,7 +135,7 @@ export const LoginScreen: React.FC = () => {
         {activeRole === 'citizen' && (
           <div className="space-y-4 pt-2">
             <p className="text-xs text-slate-300 text-center leading-relaxed">
-              Sign in with your Google account to save your health symptom history, scheme qualifications, and personalized advice across sessions.
+              {t('citizenLoginDesc')}
             </p>
 
             {/* Google Sign In Button */}
@@ -160,7 +162,7 @@ export const LoginScreen: React.FC = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                 />
               </svg>
-              <span>{isSubmitting ? 'Connecting Google Auth...' : 'Sign in with Google'}</span>
+              <span>{isSubmitting ? t('connectingGoogle') : t('signInWithGoogle')}</span>
             </button>
 
             {/* Quick Demo Guest Button */}
@@ -169,7 +171,7 @@ export const LoginScreen: React.FC = () => {
                 onClick={loginAsGuest}
                 className="text-xs text-amber-400 hover:text-amber-300 font-bold underline underline-offset-4 cursor-pointer"
               >
-                Or Continue as Demo Guest (Instant Access)
+                {t('continueAsGuest')}
               </button>
             </div>
           </div>
@@ -180,13 +182,13 @@ export const LoginScreen: React.FC = () => {
           <form onSubmit={handleAshaSubmit} className="space-y-4 pt-2">
             <p className="text-xs text-slate-300">
               {isRegisterMode 
-                ? 'Create a dedicated ASHA Healthcare Worker credentials account.' 
-                : 'Sign in to access the District Emergency ASHA Escalation Queue.'}
+                ? t('createAshaAccountDesc')
+                : t('ashaLoginDesc')}
             </p>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                ASHA Health Email / ID
+                {t('ashaEmailLabel')}
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -202,7 +204,7 @@ export const LoginScreen: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Password
+                {t('passwordLabel')}
               </label>
               <div className="relative">
                 <Lock className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
@@ -221,7 +223,7 @@ export const LoginScreen: React.FC = () => {
               disabled={isSubmitting}
               className="w-full py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-all shadow-md flex items-center justify-center space-x-1.5 cursor-pointer disabled:opacity-50"
             >
-              <span>{isRegisterMode ? 'Register ASHA Account' : 'Sign In as ASHA Worker'}</span>
+              <span>{isRegisterMode ? t('registerAshaAccountBtn') : t('signInAsAshaBtn')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 
@@ -231,7 +233,7 @@ export const LoginScreen: React.FC = () => {
                 onClick={() => setIsRegisterMode(!isRegisterMode)}
                 className="text-xs text-slate-400 hover:text-slate-200 underline"
               >
-                {isRegisterMode ? 'Already have an account? Sign In' : 'New ASHA worker? Create Account'}
+                {isRegisterMode ? t('alreadyHaveAccount') : t('newAshaWorker')}
               </button>
             </div>
           </form>

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { PHCFacility } from '../types/health';
-import { getNearestFacilities } from '../../backend/services/facilitiesService';
+import { getNearestFacilities } from '../services/facilitiesService';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   Building2, 
   MapPin, 
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 
 export const PhcMap: React.FC = () => {
+  const { t } = useLanguage();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
 
@@ -372,7 +374,7 @@ export const PhcMap: React.FC = () => {
         <div>
           <div className="flex items-center space-x-2">
             <span className="text-[10px] font-bold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase">
-              Real-Time OpenStreetMap Infrastructure
+              {t('osmInfraTitle')}
             </span>
             {/* Live Data Source Badge */}
             <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center space-x-1 ${
@@ -388,11 +390,11 @@ export const PhcMap: React.FC = () => {
           <div className="flex items-center space-x-2 mt-1">
             <Building2 className="w-6 h-6 text-[#D4A24E] dark:text-[#E0A845]" />
             <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">
-              Primary Health Centre (PHC) & Clinic Finder
+              {t('phcFinderHeader')}
             </h2>
           </div>
           <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-            Queries live OpenStreetMap healthcare nodes around your verified browser location.
+            {t('phcFinderDesc')}
           </p>
         </div>
 
@@ -409,7 +411,7 @@ export const PhcMap: React.FC = () => {
             ) : (
               <Compass className="w-3.5 h-3.5 text-blue-200" />
             )}
-            <span>{geoStatus === 'granted' ? 'Re-center GPS' : 'Use Live Location'}</span>
+            <span>{geoStatus === 'granted' ? t('recenterGps') : t('useLiveLocation')}</span>
           </button>
 
           {/* District Filter Input */}
@@ -423,7 +425,7 @@ export const PhcMap: React.FC = () => {
                   console.log('Filter query changed:', e.target.value);
                   setDistrictFilter(e.target.value);
                 }}
-                placeholder="Filter by name/district..."
+                placeholder={t('filterPlaceholder')}
                 className="w-full pl-9 pr-7 py-2 rounded-xl bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E]"
               />
               {districtFilter && (
@@ -441,7 +443,7 @@ export const PhcMap: React.FC = () => {
               type="submit"
               className="px-3.5 py-2 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-colors shadow-sm cursor-pointer shrink-0"
             >
-              Filter
+              {t('filterBtn')}
             </button>
           </form>
         </div>
@@ -453,14 +455,14 @@ export const PhcMap: React.FC = () => {
           <div className="flex items-center space-x-2">
             <MapPin className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             <span>
-              <strong>Active Search Location:</strong> {searchedCoords.name} ({searchedCoords.lat.toFixed(4)}, {searchedCoords.lng.toFixed(4)}) — Facilities within 30km
+              <strong>{t('activeSearchLocation')}</strong> {searchedCoords.name} ({searchedCoords.lat.toFixed(4)}, {searchedCoords.lng.toFixed(4)})
             </span>
           </div>
           <button
             onClick={handleClearFilter}
             className="text-[10px] bg-amber-200 dark:bg-amber-900 hover:bg-amber-300 text-amber-900 dark:text-amber-100 px-2.5 py-1 rounded-md font-bold uppercase cursor-pointer"
           >
-            Reset to GPS Location
+            {t('resetToGps')}
           </button>
         </div>
       )}
@@ -471,7 +473,7 @@ export const PhcMap: React.FC = () => {
           <div className="flex items-center space-x-2">
             <Compass className="w-4 h-4 text-blue-600 dark:text-blue-400 animate-spin" style={{ animationDuration: '6s' }} />
             <span>
-              <strong>GPS Location Verified:</strong> Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)} — Radius search: 50km
+              <strong>{t('gpsVerified')}</strong> Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)}
             </span>
           </div>
           <span className="text-[10px] bg-blue-200 dark:bg-blue-900 text-blue-900 dark:text-blue-100 px-2 py-0.5 rounded-md font-bold uppercase">
@@ -485,10 +487,9 @@ export const PhcMap: React.FC = () => {
           <div className="flex items-start space-x-2 pr-2">
             <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-0.5">
-              <strong className="block font-bold">GPS Location Access Notice ({geoError || 'Permission Denied / Signal Timeout'})</strong>
+              <strong className="block font-bold">{t('gpsAccessNotice')} ({geoError || 'Permission Denied / Signal Timeout'})</strong>
               <p className="text-stone-700 dark:text-stone-300 text-[11px] leading-relaxed">
-                Currently showing healthcare facilities for default reference coordinates (Rural Pune). To display facilities around your exact physical location:
-                <span className="font-semibold text-amber-900 dark:text-amber-200"> Click the location/lock icon in your browser URL address bar &rarr; Select &quot;Allow Location Access&quot; &rarr; Then click &quot;Use Live GPS Location&quot;.</span>
+                {t('gpsNoticeDesc')}
               </p>
             </div>
           </div>
@@ -497,7 +498,7 @@ export const PhcMap: React.FC = () => {
             className="px-3.5 py-2 bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 font-extrabold rounded-xl text-xs cursor-pointer shadow-xs shrink-0 flex items-center space-x-1.5 transition-colors"
           >
             <Compass className="w-4 h-4" />
-            <span>Use Live GPS Location</span>
+            <span>{t('useLiveGps')}</span>
           </button>
         </div>
       )}
@@ -506,7 +507,7 @@ export const PhcMap: React.FC = () => {
         <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/80 border-2 border-amber-400 dark:border-amber-700 flex items-center space-x-2 text-xs font-bold text-amber-950 dark:text-amber-200 shadow-sm">
           <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
           <span>
-            ⚠️ Sample Data — Live OpenStreetMap lookup was unavailable. Showing realistic sample entries for demonstration.
+            {t('sampleDataNotice')}
           </span>
         </div>
       )}
@@ -520,20 +521,20 @@ export const PhcMap: React.FC = () => {
           
           <div className="absolute top-3 right-3 z-10 bg-[#FAFAF7]/90 dark:bg-[#151318]/90 backdrop-blur-md px-3 py-1.5 rounded-lg border border-[#E5E0D8] dark:border-stone-800 shadow-xs text-xs font-semibold text-stone-700 dark:text-stone-200 flex items-center space-x-1.5">
             <MapPin className="w-4 h-4 text-[#D4A24E]" />
-            <span>OpenStreetMap Tiles ({filteredFacilities.length} Shown)</span>
+            <span>{t('osmTilesShown')} ({filteredFacilities.length})</span>
           </div>
         </div>
 
         {/* Facilities List & Detail Panel */}
         <div className="space-y-3 h-[520px] overflow-y-auto pr-1">
           <h3 className="font-bold text-sm text-stone-800 dark:text-stone-200 flex items-center justify-between">
-            <span>Nearby Healthcare Facilities ({filteredFacilities.length})</span>
+            <span>{t('nearbyFacilitiesHeader')} ({filteredFacilities.length})</span>
             {districtFilter && (
               <button
                 onClick={handleClearFilter}
                 className="text-xs text-red-600 dark:text-red-400 font-bold hover:underline cursor-pointer"
               >
-                Clear Filter
+                {t('clearFilter')}
               </button>
             )}
           </h3>
@@ -541,16 +542,16 @@ export const PhcMap: React.FC = () => {
           {isLoading ? (
             <div className="p-8 text-center text-xs text-stone-500 dark:text-stone-400 space-y-2 bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl border border-[#E5E0D8] dark:border-[#26232D]">
               <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#D4A24E]" />
-              <p>Fetching real OpenStreetMap facilities around coordinates...</p>
+              <p>{t('fetchingFacilities')}</p>
             </div>
           ) : filteredFacilities.length === 0 ? (
             <div className="p-6 text-center text-xs text-stone-500 dark:text-stone-400 bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl border border-[#E5E0D8] dark:border-[#26232D] space-y-2">
-              <p>No hospital or clinic nodes found matching &quot;{districtFilter}&quot;.</p>
+              <p>{t('noFacilitiesFound')} &quot;{districtFilter}&quot;.</p>
               <button
                 onClick={handleClearFilter}
                 className="px-3 py-1 bg-[#D4A24E] text-slate-950 font-bold rounded-lg text-xs cursor-pointer hover:bg-[#E0A845]"
               >
-                Reset Search
+                {t('resetSearch')}
               </button>
             </div>
           ) : (
@@ -604,14 +605,14 @@ export const PhcMap: React.FC = () => {
                   {fac.openingHours && (
                     <p className="text-[11px] text-stone-600 dark:text-stone-300 mt-1 flex items-center space-x-1">
                       <Clock className="w-3 h-3 text-stone-400" />
-                      <span>Hours: {fac.openingHours}</span>
+                      <span>{t('hoursLabel')} {fac.openingHours}</span>
                     </p>
                   )}
 
                   <div className="mt-3 pt-3 border-t border-[#E5E0D8] dark:border-stone-800 flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
                       <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{fac.emergencyServices ? '24/7 Emergency Care' : 'Government/Community Health'}</span>
+                      <span>{fac.emergencyServices ? t('emergency247') : t('govtCommHealth')}</span>
                     </span>
 
                     <div className="flex items-center space-x-2">
@@ -623,7 +624,7 @@ export const PhcMap: React.FC = () => {
                         className="flex items-center space-x-1 text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline"
                       >
                         <Navigation className="w-3 h-3" />
-                        <span>Directions</span>
+                        <span>{t('directions')}</span>
                       </a>
 
                       {fac.phone && fac.phone !== 'Not available' && (
@@ -633,7 +634,7 @@ export const PhcMap: React.FC = () => {
                           className="flex items-center space-x-1 text-xs font-bold text-[#916323] dark:text-[#E0A845] hover:underline"
                         >
                           <Phone className="w-3.5 h-3.5" />
-                          <span>Call</span>
+                          <span>{t('call')}</span>
                         </a>
                       )}
                     </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { UserProfile, ChatTurn } from '../types/health';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   X, 
   QrCode, 
@@ -31,6 +32,7 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
   userProfile,
   recentTurns = []
 }) => {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
@@ -90,14 +92,14 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h3 className="font-serif font-bold text-lg text-stone-900 dark:text-stone-100 leading-none">
-                  Digital Health Pass Card
+                  {t('digitalPassHeader')}
                 </h3>
                 <span className="px-2 py-0.5 text-[10px] font-extrabold rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                  Offline Sync Ready
+                  {t('offlineSyncReady')}
                 </span>
               </div>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                Scan with ASHA Worker reader for offline history access
+                {t('scanAshaDesc')}
               </p>
             </div>
           </div>
@@ -133,7 +135,7 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
                     AROGYA SAHAYAK
                   </span>
                   <span className="text-[9px] text-stone-400 font-mono tracking-wider uppercase">
-                    National Health Pass • ABHA Compliant ID
+                    {t('nationalHealthPass')}
                   </span>
                 </div>
               </div>
@@ -157,11 +159,11 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
 
                 <div className="grid grid-cols-2 gap-2 text-[11px] font-medium bg-stone-900/80 p-2.5 rounded-xl border border-stone-800">
                   <div>
-                    <span className="text-stone-500 block text-[9px] uppercase">Age / Gender</span>
+                    <span className="text-stone-500 block text-[9px] uppercase">{t('ageGender')}</span>
                     <span className="text-stone-200 font-bold">{userProfile.age || 30} Yrs • {userProfile.gender || 'Not specified'}</span>
                   </div>
                   <div>
-                    <span className="text-stone-500 block text-[9px] uppercase">District / Sector</span>
+                    <span className="text-stone-500 block text-[9px] uppercase">{t('districtSector')}</span>
                     <span className="text-stone-200 font-bold">
                       {userProfile.district || userProfile.state || 'Maharashtra'}
                       {userProfile.village ? ` (${userProfile.village})` : ''}
@@ -171,11 +173,11 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
 
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
                   <span className="px-2 py-0.5 rounded bg-amber-500/20 text-[#E0A845] border border-amber-500/30 text-[10px] font-bold">
-                    {userProfile.isBPL ? 'BPL Ration Holder' : 'General Scheme Category'}
+                    {userProfile.isBPL ? t('bplHolder') : t('generalCategory')}
                   </span>
                   {userProfile.isPregnant && (
                     <span className="px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[10px] font-bold">
-                      Maternal Priority (JSY)
+                      {t('maternalPriority')}
                     </span>
                   )}
                 </div>
@@ -192,7 +194,7 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
                   bgColor="#FFFFFF"
                 />
                 <span className="text-[9px] font-mono font-black text-stone-700 tracking-wider uppercase">
-                  Scan for Offline History
+                  {t('scanForOfflineHistory')}
                 </span>
               </div>
 
@@ -202,7 +204,7 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
             <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-[10px] text-stone-400">
               <span className="flex items-center space-x-1">
                 <WifiOff className="w-3 h-3 text-emerald-400" />
-                <span>Encoded Offline Payload: {triageHistory.length} Recent Triage Sessions</span>
+                <span>{t('encodedPayload')} {triageHistory.length} {t('recentSessions')}</span>
               </span>
               <span className="font-mono text-stone-500">{new Date().toLocaleDateString()}</span>
             </div>
@@ -214,14 +216,14 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-stone-700 dark:text-stone-300 flex items-center space-x-1.5">
                 <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                <span>Base64 Offline Encoded Payload String</span>
+                <span>{t('base64StringLabel')}</span>
               </span>
               <button
                 onClick={handleCopyCode}
                 className="px-2 py-1 rounded bg-[#D4A24E]/15 hover:bg-[#D4A24E]/25 text-[#916323] dark:text-[#E0A845] text-[11px] font-bold transition-colors flex items-center space-x-1 cursor-pointer"
               >
                 {copied ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                <span>{copied ? 'Copied' : 'Copy Text'}</span>
+                <span>{copied ? t('copiedBtn') : t('copyTextBtn')}</span>
               </button>
             </div>
             <div className="p-2 rounded bg-[#FAFAF7] dark:bg-[#151318] text-[10px] font-mono break-all text-stone-600 dark:text-stone-400 border border-[#E5E0D8] dark:border-stone-800">
@@ -237,7 +239,7 @@ export const DigitalHealthCardModal: React.FC<DigitalHealthCardModalProps> = ({
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-stone-200 dark:bg-stone-800 hover:bg-stone-300 text-stone-700 dark:text-stone-300 text-xs font-bold transition-colors cursor-pointer"
           >
-            Close
+            {t('closeBtn')}
           </button>
         </div>
 

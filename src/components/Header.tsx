@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { LanguageOption, UserProfile } from '../types/health';
 import { LocationCascader } from './LocationCascader';
+import { getDistrictsForState } from '../data/indiaLocationData';
 import { 
   HeartPulse, 
   Sun, 
@@ -231,9 +232,13 @@ export const Header: React.FC<HeaderProps> = ({ userProfile, setUserProfile, set
                   selectedState={userProfile.state || 'Maharashtra'}
                   selectedDistrict={userProfile.district || 'Pune Rural'}
                   selectedVillage={userProfile.village || ''}
-                  onStateChange={(st) => setUserProfile({ ...userProfile, state: st })}
-                  onDistrictChange={(dt) => setUserProfile({ ...userProfile, district: dt })}
-                  onVillageChange={(vl) => setUserProfile({ ...userProfile, village: vl })}
+                  onStateChange={(st) => {
+                    const newDists = getDistrictsForState(st);
+                    const firstDist = newDists[0] || '';
+                    setUserProfile(prev => ({ ...prev, state: st, district: firstDist }));
+                  }}
+                  onDistrictChange={(dt) => setUserProfile(prev => ({ ...prev, district: dt }))}
+                  onVillageChange={(vl) => setUserProfile(prev => ({ ...prev, village: vl }))}
                 />
               </div>
 

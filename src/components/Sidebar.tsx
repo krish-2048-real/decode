@@ -92,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             {(!isCollapsed || isMobileOpen) && (
               <span className="font-serif font-bold text-sm tracking-wide text-stone-900 dark:text-[#E0A845] truncate leading-none my-auto">
-                Navigation
+                {t('navTitle')}
               </span>
             )}
           </div>
@@ -118,7 +118,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Eyebrow header */}
         {(!isCollapsed || isMobileOpen) && (
           <div className="px-5 pt-4 pb-1 text-[10px] font-bold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase">
-            Quick Actions
+            {t('quickActions')}
           </div>
         )}
 

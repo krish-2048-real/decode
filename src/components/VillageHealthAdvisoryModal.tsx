@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { generateVillageAdvisory, VillageHealthAdvisory } from '../../backend/services/advisoryService';
+import { generateVillageAdvisory, VillageHealthAdvisory } from '../services/advisoryService';
+import { useLanguage } from '../context/LanguageContext';
 import { 
   X, 
   Printer, 
@@ -29,6 +30,7 @@ export const VillageHealthAdvisoryModal: React.FC<VillageHealthAdvisoryModalProp
   onClose,
   districtName = 'Pune Rural (Khed Sector)'
 }) => {
+  const { t } = useLanguage();
   const [advisory, setAdvisory] = useState<VillageHealthAdvisory | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedLang, setSelectedLang] = useState('en');
@@ -96,13 +98,13 @@ export const VillageHealthAdvisoryModal: React.FC<VillageHealthAdvisoryModalProp
             </div>
             <div>
               <h3 className="font-serif text-lg font-bold text-stone-100 flex items-center space-x-2">
-                <span>Village Health Advisory Generator</span>
+                <span>{t('advisoryGeneratorHeader')}</span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono border border-emerald-500/30">
-                  RAG Grounded
+                  {t('ragGrounded')}
                 </span>
               </h3>
               <p className="text-xs text-stone-400">
-                AI-Generated Weekly PHC Noticeboard Poster grounded in WHO IMCI & ICMR guidelines
+                {t('advisoryGeneratorDesc')}
               </p>
             </div>
           </div>
@@ -132,7 +134,7 @@ export const VillageHealthAdvisoryModal: React.FC<VillageHealthAdvisoryModalProp
               className="px-3 py-1.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-bold transition-colors flex items-center space-x-1 cursor-pointer disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5 text-[#E0A845]" />
-              <span>Regenerate</span>
+              <span>{t('regenerateBtn')}</span>
             </button>
 
             <button
@@ -141,7 +143,7 @@ export const VillageHealthAdvisoryModal: React.FC<VillageHealthAdvisoryModalProp
               className="px-3.5 py-1.5 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
             >
               <Printer className="w-4 h-4" />
-              <span>Print A5 Poster</span>
+              <span>{t('printPosterBtn')}</span>
             </button>
 
             <button

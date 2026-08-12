@@ -88,7 +88,7 @@ ICMR/NHM Protocols Section 2: Adult Emergency Red Flags (chest pain, stroke FAST
     console.warn('Could not read schemes.json directly:', err);
   }
 
-  const apiKey = process.env.GEMINI_API_KEY || (typeof import.meta !== 'undefined' && (import.meta as any).env && ((import.meta as any).env.VITE_GEMINI_API_KEY || (import.meta as any).env.GEMINI_API_KEY));
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return createDefaultAdvisory(districtInput, requestedLanguage, sortedSymptoms);
   }

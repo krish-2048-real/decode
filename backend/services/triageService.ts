@@ -91,7 +91,7 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
   const isSensitive = Boolean(detectedSensitiveCategory) || Boolean(preferPrivate);
   const isPrivateRouting = isSensitive;
 
-  const apiKey = process.env.GEMINI_API_KEY || (typeof import.meta !== 'undefined' && (import.meta as any).env && ((import.meta as any).env.VITE_GEMINI_API_KEY || (import.meta as any).env.GEMINI_API_KEY));
+  const apiKey = process.env.GEMINI_API_KEY;
   let result: TriageResult;
 
   if (!apiKey) {
@@ -138,20 +138,28 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
         }
       });
 
+      const languageNames: Record<string, string> = {
+        hi: "Hindi (हिंदी)",
+        mr: "Marathi (मराठी)",
+        ta: "Tamil (தமிழ்)",
+        en: "English"
+      };
+      const fullLang = languageNames[language] || language || "English";
+
       const systemPrompt = `You are "Arogya Sahayak", an empathetic, highly accurate rural healthcare triage assistant in India.
 Your task is to analyze patient symptoms reported in text, voice, and/or photographs, assess severity, detect sensitive topics, and provide actionable care guidance.
 
 CRITICAL INSTRUCTIONS:
-1. Always respond in the requested language: "${language || "English"}".
+1. You MUST generate ALL user-facing JSON fields (symptoms array, triage_advice, disclaimer, escalation_reason, visual_analysis description/concern_category) COMPLETELY in ${fullLang}.
 2. Evaluate severity into strictly one of: ["MILD", "MODERATE", "HIGH", "CRITICAL"].
 3. "escalate_immediately" MUST be true for red flag symptoms like chest pain, breathing difficulty, severe bleeding, high infant fever, convulsions, snake bites, stroke.
 4. Detect if the message covers sensitive categories: Mental Health, Sexual/Reproductive Health, or Domestic Violence/Abuse. Set is_sensitive to true if detected.
-5. If an image is attached, perform a visual symptom inspection (skin rashes, lesions, wounds, eye redness, swelling). Populate visual_analysis with description, concern_category, and urgency.
-6. Provide concise, compassionate advice suitable for rural Indian citizens.`;
+5. If an image is attached, perform a visual symptom inspection (skin rashes, lesions, wounds, eye redness, swelling). Populate visual_analysis with description, concern_category, and urgency in ${fullLang}.
+6. Provide concise, compassionate advice suitable for rural Indian citizens in ${fullLang}.`;
 
       const promptText = `Patient Message: "${message}"
 User Profile: ${JSON.stringify(userProfile || {})}
-Language Requested: ${language || "English"}
+Target Language Required: ${fullLang} (All JSON string fields MUST be in ${fullLang})
 User Requested Confidentiality: ${preferPrivate ? 'YES' : 'NO'}
 Image Included: ${imageBase64 ? 'YES' : 'NO'}`;
 
