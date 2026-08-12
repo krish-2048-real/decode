@@ -128,8 +128,15 @@ export const AshaAlertsQueue: React.FC = () => {
     };
 
     createAshaAlert(demoAlert);
-    playEmergencyChime();
-    setActiveEmergencyToast(demoAlert);
+    
+    // Only alert if logged in as Asha Worker
+    if (userProfile?.role === 'asha') {
+      playEmergencyChime();
+      setActiveEmergencyToast(demoAlert);
+    } else {
+      setActionFeedback('🚨 Critical Escalation Alert created in Asha Queue (Alert notification routed to logged-in ASHA workers).');
+      setTimeout(() => setActionFeedback(null), 5000);
+    }
   };
 
   const triggerProactiveNotice = async () => {
@@ -167,23 +174,6 @@ export const AshaAlertsQueue: React.FC = () => {
       }
     } catch (err) {
       console.warn('Proactive alerts API unavailable, using fallback:', err);
-    }
-
-    // Fallback: generate client-side proactive notice
-    const schemeNotice = {
-      title: '📢 Scheme Application Deadline Alert (5 Days Remaining)',
-      body: `Matched Profile: ${userProfile?.isBPL ? 'BPL Household' : 'Rural Resident'} in ${userProfile?.district || 'Pune Rural'}.\nScheme: Janani Suraksha Yojana / PM-JAY Renewal deadline approaching.\nStatus: Proactive alert sent via Push & SMS.`
-    };
-
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(schemeNotice.title, {
-          body: schemeNotice.body,
-          icon: '/favicon.ico'
-        });
-      } catch (e) {
-        console.warn('Proactive push error:', e);
-      }
     }
 
     // Show as in-app panel with single fallback alert
@@ -235,11 +225,38 @@ export const AshaAlertsQueue: React.FC = () => {
           setRadarAlerts(prev => [data.alert, ...prev]);
           setActionFeedback('⚠️ Live Dengue Outbreak Anomaly Simulated! Radar Alert Created.');
           setTimeout(() => setActionFeedback(null), 5000);
+          return;
         }
       }
     } catch (err) {
-      console.warn('Simulate outbreak failed:', err);
+      console.warn('Simulate outbreak API error:', err);
     }
+
+    // Fallback guaranteed simulated alert
+    const simAlert: OutbreakRadarAlert = {
+      id: 'radar_sim_' + Date.now(),
+      district: userProfile?.district || 'Pune Rural (Khed Sector)',
+      sector: 'Khed Sector (Wada & Chakan Cluster)',
+      diseasePattern: 'Potential Dengue Cluster Anomaly',
+      caseCount24h: 14,
+      thresholdBaseline: 3,
+      urgency: 'CRITICAL',
+      detectedAt: new Date().toISOString(),
+      summaryText: '⚠️ LIVE ANOMALY DETECTED: Potential Dengue Cluster in Khed Sector (14 cases in 24 hrs). Exceeds baseline threshold by 360%.',
+      recommendedActions: [
+        'Organize village fogging & stagnant water abatement drive.',
+        'Broadcast voice alert to local ASHA WhatsApp/SMS dispatch group.',
+        'Escalate report to PHC District Medical Officer.'
+      ],
+      phcOfficerContact: {
+        name: 'Dr. Rajesh V. Deshmukh (Medical Officer)',
+        phone: '+91 98221 55443',
+        phcName: 'Khed Primary Health Centre'
+      }
+    };
+    setRadarAlerts(prev => [simAlert, ...prev]);
+    setActionFeedback('⚠️ Live Dengue Outbreak Anomaly Simulated! Radar Alert Created.');
+    setTimeout(() => setActionFeedback(null), 5000);
   };
 
   const handleGeneratePdfAdvisory = (alertItem: OutbreakRadarAlert) => {
@@ -334,7 +351,7 @@ export const AshaAlertsQueue: React.FC = () => {
           snapshot.docChanges().forEach((change) => {
             if (change.type === 'added') {
               const newAlert = change.doc.data() as AshaAlert;
-              if (newAlert.status === 'pending') {
+              if (newAlert.status === 'pending' && userProfile?.role === 'asha') {
                 playEmergencyChime();
                 setActiveEmergencyToast(newAlert);
 
@@ -471,119 +488,134 @@ export const AshaAlertsQueue: React.FC = () => {
         </div>
       )}
 
-      {/* Top Banner */}
-      <div className="bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl p-6 border border-[#E5E0D8] dark:border-[#26232D] shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400">
-            <ShieldAlert className="w-6 h-6 animate-pulse" />
+      {/* Top Banner & Control Panel */}
+      <div className="bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl p-6 border border-[#E5E0D8] dark:border-[#26232D] shadow-md space-y-4">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+          <div className="flex items-center space-x-3">
+            <div className="p-3 rounded-2xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 shrink-0">
+              <ShieldAlert className="w-7 h-7 animate-pulse" />
+            </div>
+            <div>
+              <div className="text-[10px] font-extrabold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase">
+                {t('emergencyEscalationQueue')}
+              </div>
+              <div className="flex items-center space-x-2 mt-0.5">
+                <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">
+                  {t('ashaAlertDispatch')}
+                </h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-red-500 text-white text-xs font-black shadow-xs">
+                  {alerts.filter(a => a.status === 'pending').length} {t('pendingLabel')}
+                </span>
+              </div>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                {t('ashaDispatchDesc')}
+              </p>
+            </div>
           </div>
-          <div>
-            <div className="text-[10px] font-bold tracking-widest text-[#B68434] dark:text-[#E0A845] uppercase">
-              {t('emergencyEscalationQueue')}
-            </div>
-            <div className="flex items-center space-x-2 mt-0.5">
-              <h2 className="font-serif text-2xl font-bold text-stone-900 dark:text-stone-100">
-                {t('ashaAlertDispatch')}
-              </h2>
-              <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-xs font-black">
-                {alerts.filter(a => a.status === 'pending').length} {t('pendingLabel')}
-              </span>
-            </div>
-            <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-              {t('ashaDispatchDesc')}
-            </p>
+
+          {/* Field Operational Action Buttons */}
+          <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <button
+              onClick={enableBrowserNotifications}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer ${
+                notifPermission === 'granted'
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                  : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
+              }`}
+            >
+              {notifPermission === 'granted' ? (
+                <>
+                  <BellRing className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <span>Push Active</span>
+                </>
+              ) : (
+                <>
+                  <BellOff className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Enable Push</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsScannerOpen(true)}
+              className="px-3 py-2 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>{t('scanPatientCard')}</span>
+            </button>
+
+            <button
+              onClick={fetchAlerts}
+              className="px-3 py-2 rounded-xl bg-stone-200/80 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-300 dark:hover:bg-stone-700 transition-colors flex items-center space-x-1.5 text-xs font-bold cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{t('refreshQueue')}</span>
+            </button>
+
+            <button
+              onClick={() => { fetchNotifications(); setShowNotifLog(!showNotifLog); }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer border ${
+                showNotifLog
+                  ? 'bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800'
+                  : 'bg-stone-200/80 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:border-sky-400'
+              }`}
+            >
+              <Inbox className="w-3.5 h-3.5" />
+              <span>Log</span>
+              {notificationLog.length > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-black">
+                  {notificationLog.filter(n => n.type === 'sms').length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center space-x-2 gap-y-2 w-full md:w-auto">
-          <button
-            onClick={enableBrowserNotifications}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-xs cursor-pointer ${
-              notifPermission === 'granted'
-                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
-            }`}
-          >
-            {notifPermission === 'granted' ? (
-              <>
-                <BellRing className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-bounce" />
-                <span>Push Alerts Active</span>
-              </>
-            ) : (
-              <>
-                <BellOff className="w-4 h-4 text-amber-700" />
-                <span>Enable Push Alerts</span>
-              </>
-            )}
-          </button>
+        {/* Dedicated SIH Judge Demo Control Panel */}
+        <div className="pt-3 border-t border-[#E5E0D8] dark:border-stone-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-stone-100/60 dark:bg-stone-900/60 p-3 rounded-xl">
+          <div className="flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            <span className="text-[11px] font-extrabold tracking-wider uppercase text-purple-900 dark:text-purple-300">
+              SIH Judge Presentation Control Panel
+            </span>
+          </div>
 
-          <button
-            onClick={handleSimulateOutbreak}
-            className="px-3.5 py-2.5 rounded-xl bg-purple-700 hover:bg-purple-600 text-white text-xs font-black transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-purple-400"
-            title="Simulate live syndromic outbreak anomaly for SIH judge presentation"
-          >
-            <Radio className="w-4 h-4 text-amber-300 animate-pulse" />
-            <span>Simulate Outbreak Radar</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleSimulateOutbreak}
+              className="px-3 py-2 rounded-xl bg-purple-700 hover:bg-purple-600 text-white text-xs font-extrabold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer border border-purple-400"
+              title="Simulate live syndromic outbreak anomaly for SIH judge presentation"
+            >
+              <Radio className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+              <span>Simulate Outbreak Radar</span>
+            </button>
 
-          <button
-            onClick={triggerDemoAlert}
-            className="px-3.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-red-400"
-            title="Simulate a real-time critical escalation alert for testing"
-          >
-            <ShieldAlert className="w-4 h-4 animate-pulse" />
-            <span>Simulate Emergency Alert</span>
-          </button>
+            <button
+              onClick={triggerDemoAlert}
+              className="px-3 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-extrabold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer border border-red-400"
+              title="Simulate a real-time critical escalation alert for testing"
+            >
+              <ShieldAlert className="w-3.5 h-3.5 animate-pulse" />
+              <span>Simulate Emergency Alert</span>
+            </button>
 
-          <button
-            onClick={triggerProactiveNotice}
-            className="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-black transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-amber-300"
-            title="Dispatch proactive scheme deadline & outbreak advisory notice to opted-in users"
-          >
-            <BellRing className="w-4 h-4 text-stone-900" />
-            <span>Test Proactive Notice</span>
-          </button>
+            <button
+              onClick={triggerProactiveNotice}
+              className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-extrabold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer border border-amber-300"
+              title="Dispatch proactive scheme deadline & outbreak advisory notice to opted-in users"
+            >
+              <BellRing className="w-3.5 h-3.5 text-stone-900" />
+              <span>Test Proactive Notice</span>
+            </button>
 
-          <button
-            onClick={() => setIsAdvisoryModalOpen(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-[#151318] dark:bg-stone-100 text-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white text-xs font-extrabold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-[#D4A24E]/40"
-          >
-            <Sparkles className="w-4 h-4 text-[#D4A24E]" />
-            <span>{t('generateVillageAdvisory')}</span>
-          </button>
-
-          <button
-            onClick={() => setIsScannerOpen(true)}
-            className="px-3.5 py-2.5 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer"
-          >
-            <QrCode className="w-4 h-4" />
-            <span>{t('scanPatientCard')}</span>
-          </button>
-
-          <button
-            onClick={fetchAlerts}
-            className="p-2.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors flex items-center space-x-1.5 text-xs font-bold cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{t('refreshQueue')}</span>
-          </button>
-
-          <button
-            onClick={() => { fetchNotifications(); setShowNotifLog(!showNotifLog); }}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer border ${
-              showNotifLog
-                ? 'bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800'
-                : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:border-sky-400'
-            }`}
-          >
-            <Inbox className="w-4 h-4" />
-            <span className="hidden sm:inline">Notification Log</span>
-            {notificationLog.length > 0 && (
-              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-black">
-                {notificationLog.filter(n => n.type === 'sms').length}
-              </span>
-            )}
-          </button>
+            <button
+              onClick={() => setIsAdvisoryModalOpen(true)}
+              className="px-3 py-2 rounded-xl bg-[#151318] dark:bg-stone-100 text-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white text-xs font-extrabold transition-all shadow-xs flex items-center space-x-1.5 cursor-pointer border border-[#D4A24E]/40"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#D4A24E]" />
+              <span>{t('generateVillageAdvisory')}</span>
+            </button>
+          </div>
         </div>
       </div>
 

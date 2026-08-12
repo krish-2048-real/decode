@@ -56,6 +56,72 @@ const UI_TRANSLATIONS: Translations = {
     mr: 'डेमो अतिथी म्हणून सुरू ठेवा',
     ta: 'டெமோ விருந்தினராக தொடரவும்'
   },
+  emergencyEscalationQueue: {
+    en: 'EMERGENCY ESCALATION QUEUE',
+    hi: 'आपातकालीन एस्केलेशन कतार',
+    mr: 'आपत्कालीन एस्केलेशन रांग',
+    ta: 'அவசர நிலை வரிசை'
+  },
+  ashaAlertDispatch: {
+    en: 'ASHA Alert Dispatch & Escalation Queue',
+    hi: 'आशा अलर्ट प्रेषण एवं एस्केलेशन कतार',
+    mr: 'आशा अलर्ट पाठवणी व एस्केलेशन रांग',
+    ta: 'ஆஷா விழிப்பூட்டல் வரிசை'
+  },
+  pendingLabel: {
+    en: 'Pending',
+    hi: 'लंबित',
+    mr: 'लंबित',
+    ta: 'நிலுவையில்'
+  },
+  ashaDispatchDesc: {
+    en: 'Real-time emergency triage escalations & automated SMS dispatches to field ASHA workers.',
+    hi: 'फील्ड आशा कार्यकर्ताओं के लिए वास्तविक समय आपातकालीन जांच एस्केलेशन और स्वचालित एसएमएस।',
+    mr: 'फील्ड आशा सेविकांसाठी रीअल-टाइम आपत्कालीन तपासणी व स्वयंचलित एसएमएस.',
+    ta: 'ஆஷா பணியாளர்களுக்கான நேரடி அவசர நிலை விழிப்பூட்டல்.'
+  },
+  ashaLoginDesc: {
+    en: 'Sign in with registered ASHA credentials or PHC worker ID to access emergency queue.',
+    hi: 'आपातकालीन कतार तक पहुंचने के लिए पंजीकृत आशा क्रेडेंशियल या पीएचसी आईडी से साइन इन करें।',
+    mr: 'आपत्कालीन रांगेत प्रवेश करण्यासाठी नोंदणीकृत आशा क्रेडेंशियल किंवा पीएचसी आयडीने साइन इन करा.',
+    ta: 'ஆஷா பணியாளர் கணக்கில் உள்நுழையவும்.'
+  },
+  ashaEmailLabel: {
+    en: 'ASHA Email / PHC Worker ID',
+    hi: 'आशा ईमेल / पीएचसी कार्यकर्ता आईडी',
+    mr: 'आशा ईमेल / पीएचसी आयडी',
+    ta: 'ஆஷா மின்னஞ்சல் / PHC ஐடி'
+  },
+  passwordLabel: {
+    en: 'Password',
+    hi: 'पासवर्ड',
+    mr: 'पासवर्ड',
+    ta: 'கடவுச்சொல்'
+  },
+  signInAsAshaBtn: {
+    en: 'Sign In as ASHA Worker',
+    hi: 'आशा कार्यकर्ता के रूप में साइन इन करें',
+    mr: 'आशा सेविका म्हणून साइन इन करा',
+    ta: 'ஆஷா பணியாளராக உள்நுழைக'
+  },
+  createAshaAccountBtn: {
+    en: 'Register ASHA Account',
+    hi: 'आशा खाता पंजीकृत करें',
+    mr: 'आशा खाते नोंदणी करा',
+    ta: 'ஆஷா கணக்கை பதிவு செய்க'
+  },
+  newAshaWorker: {
+    en: 'New ASHA Worker? Register Account',
+    hi: 'नये आशा कार्यकर्ता? खाता पंजीकृत करें',
+    mr: 'नवीन आशा सेविका? खाते नोंदणी करा',
+    ta: 'புதிய ஆஷா பணியாளரா? பதிவு செய்க'
+  },
+  alreadyRegisteredAsha: {
+    en: 'Already Registered? Sign In',
+    hi: 'पहले से पंजीकृत? साइन इन करें',
+    mr: 'आधीच नोंदणीकृत? साइन इन करा',
+    ta: 'ஏற்கனவே பதிவு செய்தவரா? உள்நுழைக'
+  },
   tabTriage: {
     en: 'Symptom Triage',
     hi: 'लक्षण जांच (Triage)',
@@ -565,12 +631,6 @@ const UI_TRANSLATIONS: Translations = {
     hi: 'बीमारी प्रकोप निगरानी:',
     mr: 'रोगप्रसार निगराणी:',
     ta: 'நோய்த்தொற்று கண்காணிப்பு:'
-  },
-  emergencyEscalationQueue: {
-    en: 'Emergency Escalation Queue',
-    hi: 'आपातकालीन रिस्पॉन्स कतार',
-    mr: 'आपत्कालीन प्रतिसाद रांग',
-    ta: 'அவசர நிலை வரிசை'
   },
   ashaAlertHeader: {
     en: 'ASHA & ANM Alert Dispatch',
