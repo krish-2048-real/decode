@@ -139,80 +139,121 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const getRegisteredAshaUsers = (): Record<string, { pass: string; profile: UserProfile }> => {
+    try {
+      const stored = localStorage.getItem('arogya_registered_asha_users');
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  };
+
   const loginAsAsha = async (email: string, pass: string) => {
     setLoading(true);
-    const ashaProf: UserProfile = {
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const regUsers = getRegisteredAshaUsers();
+    const existingLocalUser = regUsers[cleanEmail];
+
+    // Check password if account is registered locally
+    if (existingLocalUser && existingLocalUser.pass !== pass) {
+      setLoading(false);
+      throw new Error('Invalid password for registered ASHA account. Please enter the correct password.');
+    }
+
+    const ashaProf: UserProfile = existingLocalUser?.profile || {
       uid: 'asha_user_' + Date.now(),
-      displayName: 'ASHA Worker (' + (email ? email.split('@')[0] : 'PHC') + ')',
-      email: email || 'asha.worker@phc.gov.in',
+      displayName: 'ASHA Worker (' + (cleanEmail ? cleanEmail.split('@')[0] : 'PHC') + ')',
+      email: cleanEmail || 'asha.worker@phc.gov.in',
       role: 'asha',
       district: 'Pune Rural',
       state: 'Maharashtra',
       village: 'Khed Sector',
       createdAt: new Date().toISOString()
     };
+
+    let firebaseAuthSuccess = false;
+    let authErrorMessage = '';
+
+    try {
+      const res = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      ashaProf.uid = res.user.uid;
+      firebaseAuthSuccess = true;
+      try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
+    } catch (err: any) {
+      console.warn('Firebase ASHA sign in error:', err);
+      authErrorMessage = err.message || '';
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setLoading(false);
+        throw new Error('Incorrect password entered. Please enter the valid account password.');
+      }
+    }
+
+    // If Firebase Auth failed and user was not registered locally or default demo credentials
+    const isDemoCredential = cleanEmail === 'asha.worker@phc.gov.in' || cleanEmail.includes('asha');
+    if (!firebaseAuthSuccess && !existingLocalUser && !isDemoCredential) {
+      setLoading(false);
+      throw new Error('No ASHA account found for this email. Please click "New ASHA Worker? Register Account" below to register.');
+    }
+
+    // Login success - save session
+    regUsers[cleanEmail] = { pass, profile: ashaProf };
+    localStorage.setItem('arogya_registered_asha_users', JSON.stringify(regUsers));
     localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
     localStorage.setItem('arogya_is_guest', 'true');
     setIsGuest(true);
     setUserProfile(ashaProf);
     setNeedsProfileSetup(false);
-
-    try {
-      const res = await signInWithEmailAndPassword(auth, email, pass);
-      ashaProf.uid = res.user.uid;
-      try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
-    } catch (err: any) {
-      console.warn('Firebase ASHA sign in fallback (auto-registering or creating local session):', err);
-      try {
-        const createRes = await createUserWithEmailAndPassword(auth, email, pass);
-        ashaProf.uid = createRes.user.uid;
-        try { await setDoc(doc(db, 'users', createRes.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
-      } catch (cErr) {
-        console.warn('Firebase ASHA auto-create fallback:', cErr);
-      }
-    } finally {
-      setUserProfile(ashaProf);
-      setNeedsProfileSetup(false);
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   const createAshaAccount = async (email: string, pass: string) => {
     setLoading(true);
+    if (!pass || pass.length < 6) {
+      setLoading(false);
+      throw new Error('Password must be at least 6 characters long.');
+    }
+
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const regUsers = getRegisteredAshaUsers();
+
     const ashaProf: UserProfile = {
       uid: 'asha_user_' + Date.now(),
-      displayName: 'ASHA Worker (' + (email ? email.split('@')[0] : 'PHC') + ')',
-      email: email || 'asha.worker@phc.gov.in',
+      displayName: 'ASHA Worker (' + (cleanEmail ? cleanEmail.split('@')[0] : 'PHC') + ')',
+      email: cleanEmail,
       role: 'asha',
       district: 'Pune Rural',
       state: 'Maharashtra',
       village: 'Khed Sector',
       createdAt: new Date().toISOString()
     };
+
+    try {
+      const res = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
+      ashaProf.uid = res.user.uid;
+      try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
+    } catch (err: any) {
+      console.warn('Firebase ASHA registration error (registering locally):', err);
+      if (err.code === 'auth/email-already-in-use') {
+        // If email already in use on Firebase, verify password via sign-in
+        try {
+          const signRes = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+          ashaProf.uid = signRes.user.uid;
+        } catch (sErr: any) {
+          setLoading(false);
+          throw new Error('This email is already registered with a different password. Please sign in instead.');
+        }
+      }
+    }
+
+    // Save registered user profile and password
+    regUsers[cleanEmail] = { pass, profile: ashaProf };
+    localStorage.setItem('arogya_registered_asha_users', JSON.stringify(regUsers));
     localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
     localStorage.setItem('arogya_is_guest', 'true');
     setIsGuest(true);
     setUserProfile(ashaProf);
     setNeedsProfileSetup(false);
-
-    try {
-      const res = await createUserWithEmailAndPassword(auth, email, pass);
-      ashaProf.uid = res.user.uid;
-      try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
-    } catch (err: any) {
-      console.warn('Firebase ASHA registration fallback (auto signing-in or local session):', err);
-      try {
-        const signRes = await signInWithEmailAndPassword(auth, email, pass);
-        ashaProf.uid = signRes.user.uid;
-        try { await setDoc(doc(db, 'users', signRes.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
-      } catch (sErr) {
-        console.warn('Firebase ASHA sign-in fallback:', sErr);
-      }
-    } finally {
-      setUserProfile(ashaProf);
-      setNeedsProfileSetup(false);
-      setLoading(false);
-    }
+    setLoading(false);
   };
 
   const saveProfile = async (data: Partial<UserProfile>) => {

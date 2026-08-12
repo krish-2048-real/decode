@@ -55,7 +55,8 @@ export const LoginScreen: React.FC = () => {
         await loginAsAsha(ashaEmail, ashaPassword);
       }
     } catch (err: any) {
-      console.warn('ASHA submit notice:', err);
+      console.warn('ASHA login error:', err);
+      setErrorMessage(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
       setIsSubmitting(false);
     }
