@@ -231,7 +231,7 @@ Image Included: ${imageBase64 ? 'YES' : 'NO'}`;
       };
 
       // Model fallback and retry loop for high availability
-      const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-flash-latest"];
+      const modelsToTry = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.1-flash-lite"];
       let response: any = null;
       let lastCallError: any = null;
 

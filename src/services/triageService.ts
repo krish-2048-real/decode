@@ -57,18 +57,37 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
   const symptomNote = input.message ? input.message.trim() : "Reported health concern";
   let advice = '';
 
-  if (lang === 'hi') {
-    advice = matchedRedFlag
+  let conditionCategory = 'general';
+  if (lowerMsg.includes('pile') || lowerMsg.includes('hemorrhoid') || lowerMsg.includes('bawasir')) {
+    conditionCategory = 'piles';
+  } else if (lowerMsg.includes('stomach') || lowerMsg.includes('abdomen') || lowerMsg.includes('belly') || lowerMsg.includes('gut')) {
+    conditionCategory = 'stomach';
+  } else if (lowerMsg.includes('head') || lowerMsg.includes('headache') || lowerMsg.includes('migraine')) {
+    conditionCategory = 'head';
+  } else if (lowerMsg.includes('fever') || lowerMsg.includes('bukhar') || lowerMsg.includes('taap')) {
+    conditionCategory = 'fever';
+  } else if (lowerMsg.includes('skin') || lowerMsg.includes('rash') || lowerMsg.includes('itch') || lowerMsg.includes('wound')) {
+    conditionCategory = 'skin';
+  }
+
+  if (matchedRedFlag) {
+    advice = lang === 'hi'
       ? `🚨 आपात्कालीन चेतावनी: आपके लक्षणों ("${matchedRedFlag}") के आधार पर तुरंत नजदीकी प्राथमिक स्वास्थ्य केंद्र (PHC) या 108 एम्बुलेंस सेवा से संपर्क करें।`
-      : `नमस्ते! आपके द्वारा बताए गए लक्षणों ("${symptomNote}") के लिए प्राथमिक स्वास्थ्य सलाह: प्रचुर मात्रा में स्वच्छ उबला पानी पिएं, विश्राम करें और नजदीकी पीएचसी (PHC) में आशा कार्यकर्ता से परामर्श लें।`;
-  } else if (lang === 'mr') {
-    advice = matchedRedFlag
+      : lang === 'mr'
       ? `🚨 तातडीची आरोग्य सूचना: आपल्या लक्षणांच्या आधारे ("${matchedRedFlag}") ताबडतोब जवळच्या प्राथमिक आरोग्य केंद्रात (PHC) किंवा १०८ रुग्णवाहिकेस कॉल करा.`
-      : `नमस्ते! तुमच्या लक्षणांसाठी ("${symptomNote}") आरोग्य सल्ला: विश्रांती घ्या, भरपूर स्वच्छ उकळलेले पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा.`;
+      : `🚨 EMERGENCY ALERT: Based on reported red-flag symptom ("${matchedRedFlag}"), please seek immediate medical transport to your nearest Primary Health Centre or call 108 Ambulance.`;
   } else {
-    advice = matchedRedFlag
-      ? `🚨 EMERGENCY ALERT: Based on reported red-flag symptom ("${matchedRedFlag}"), please seek immediate medical transport to your nearest Primary Health Centre or call 108 Ambulance.`
-      : `Namaste. For your reported symptoms ("${symptomNote}"), please stay hydrated with clean water, rest adequately, and consult your local ASHA worker or Primary Health Centre (PHC).`;
+    if (conditionCategory === 'piles') {
+      advice = `Guidance for Piles/Hemorrhoids ("${symptomNote}"): Consume high-fiber foods (whole grains, fruits, vegetables), drink 8-10 glasses of water daily to prevent constipation, avoid straining, and take warm sitz baths. Consult your PHC doctor or ASHA worker for topical ointments.`;
+    } else if (conditionCategory === 'stomach') {
+      advice = `Guidance for Stomach/Abdominal Discomfort ("${symptomNote}"): Eat light bland meals (rice, khichdi, curd), stay hydrated with ORS or warm water, and avoid spicy or oily foods. If pain worsens or vomiting occurs, visit your nearest PHC immediately.`;
+    } else if (conditionCategory === 'head') {
+      advice = `Guidance for Headache/Head Discomfort ("${symptomNote}"): Rest in a quiet, dark room, stay hydrated, apply a cold compress to your forehead, and check your blood pressure at the nearest PHC if head pain persists.`;
+    } else if (conditionCategory === 'fever') {
+      advice = `Guidance for Fever & Body Ache ("${symptomNote}"): Rest adequately, keep hydrated with clean water/ORS, use lukewarm water sponges on forehead, and visit local PHC for routine blood tests (malaria/dengue screening).`;
+    } else {
+      advice = `Primary health guidance for reported symptoms ("${symptomNote}"): Stay well-hydrated, rest adequately, monitor your symptoms, and consult your local ASHA worker or Primary Health Centre (PHC) doctor.`;
+    }
   }
 
   return {
