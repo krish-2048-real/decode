@@ -5,3 +5,7 @@ export { createAshaAlert, getAshaAlerts, getAshaAlertsAsync, updateAshaAlertStat
 export { generateVillageAdvisory } from './services/advisoryService';
 export { notifyAshaWorker, getAshaNotifications, getAshaNotificationsSync, resolveAshaWorker } from './services/notificationService';
 export { generateProactiveAlerts } from './services/proactiveService';
+export { getOutbreakRadarAlerts, simulateOutbreakCluster } from './services/surveillanceService';
+export { parseHealthDocumentOcr, createSampleBplOcrResult } from './services/ocrService';
+
+

@@ -58,6 +58,52 @@ export interface TriageResult {
   };
   confirmationReceipt?: UserConfirmationReceipt;
   proactiveAlerts?: ProactiveAlert[];
+  triageCategory?: 'GREEN' | 'YELLOW' | 'RED';
+  icmrVerification?: {
+    verified: boolean;
+    confidenceScore: number;
+    protocolClause: string;
+    timestamp: string;
+  };
+  criticalEscalationBanner?: {
+    title: string;
+    subtitle: string;
+    actionCall: string;
+  };
+}
+
+export interface DocumentOcrResult {
+  success: boolean;
+  documentType: string;
+  extractedProfile: {
+    age?: number;
+    annualIncome?: number;
+    isBPL?: boolean;
+    gender?: 'Male' | 'Female' | 'Other';
+    state?: string;
+    district?: string;
+    rawTextSnippet?: string;
+  };
+  confidenceScore: number;
+  message?: string;
+}
+
+export interface OutbreakRadarAlert {
+  id: string;
+  district: string;
+  sector: string;
+  diseasePattern: string;
+  caseCount24h: number;
+  thresholdBaseline: number;
+  urgency: 'MODERATE' | 'HIGH' | 'CRITICAL';
+  detectedAt: string;
+  summaryText: string;
+  recommendedActions: string[];
+  phcOfficerContact: {
+    name: string;
+    phone: string;
+    phcName: string;
+  };
 }
 
 export interface UserConfirmationReceipt {

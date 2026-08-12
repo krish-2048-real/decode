@@ -9,6 +9,8 @@ import { createAshaAlert, getAshaAlerts, getAshaAlertsAsync, updateAshaAlertStat
 import { generateVillageAdvisory } from "./backend/services/advisoryService";
 import { getAshaNotifications, resolveAshaWorker } from "./backend/services/notificationService";
 import { generateProactiveAlerts } from "./backend/services/proactiveService";
+import { getOutbreakRadarAlerts, simulateOutbreakCluster } from "./backend/services/surveillanceService";
+import { parseHealthDocumentOcr, createSampleBplOcrResult } from "./backend/services/ocrService";
 import { UserConfirmationReceipt } from "./src/types/health";
 
 async function startServer() {
@@ -224,6 +226,46 @@ async function startServer() {
     } catch (err: any) {
       console.error("Error generating proactive alerts:", err);
       res.status(500).json({ error: "Failed to generate proactive alerts." });
+    }
+  });
+
+  // Smart OCR Health Scheme Document Auto-Fill endpoint
+  app.post("/api/scanDocument", async (req, res) => {
+    try {
+      const { imageBase64, isDemo, state } = req.body || {};
+      if (isDemo || !imageBase64) {
+        const result = createSampleBplOcrResult(state);
+        return res.json({ success: true, result });
+      }
+      const result = await parseHealthDocumentOcr(imageBase64, state);
+      res.json({ success: true, result });
+    } catch (err: any) {
+      console.error("Error scanning document:", err);
+      res.status(500).json({ error: "Failed to scan document with Gemini Vision." });
+    }
+  });
+
+  // Outbreak Surveillance Radar endpoint
+  app.get("/api/outbreakRadar", async (req, res) => {
+    try {
+      const { district } = req.query || {};
+      const alerts = await getOutbreakRadarAlerts(district as string);
+      res.json({ success: true, count: alerts.length, alerts });
+    } catch (err: any) {
+      console.error("Error fetching outbreak radar:", err);
+      res.status(500).json({ error: "Failed to fetch outbreak radar data." });
+    }
+  });
+
+  // Outbreak Simulation endpoint (for judge presentations)
+  app.post("/api/simulateOutbreak", async (req, res) => {
+    try {
+      const { disease, district } = req.body || {};
+      const alert = simulateOutbreakCluster(disease || 'Dengue Cluster', district || 'Pune Rural (Khed Sector)');
+      res.json({ success: true, alert });
+    } catch (err: any) {
+      console.error("Error simulating outbreak:", err);
+      res.status(500).json({ error: "Failed to simulate outbreak." });
     }
   });
 

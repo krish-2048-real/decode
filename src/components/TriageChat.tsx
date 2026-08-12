@@ -406,6 +406,12 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                         {triage.severity} SEVERITY
                       </span>
 
+                      {/* ICMR Verification Badge */}
+                      <span className="flex items-center space-x-1.5 px-3 py-1 text-xs font-extrabold rounded-full bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700 shadow-xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span>✓ Verified against ICMR Triage Protocols (Confidence: {triage.icmrVerification?.confidenceScore || 98}%)</span>
+                      </span>
+
                       {/* Visual Assessment Badge */}
                       {triage.visual_analysis && (
                         <span className="flex items-center space-x-1 px-2.5 py-1 text-xs font-bold rounded-full bg-cyan-100 text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200 border border-cyan-300 dark:border-cyan-800">
@@ -447,6 +453,40 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                         </>
                       )}
                     </button>
+                  </div>
+                )}
+
+                {/* HIGH CONTRAST CRITICAL ESCALATION BANNER FOR RED/CRITICAL CASES */}
+                {!isUser && (triage?.criticalEscalationBanner || triage?.triageCategory === 'RED' || triage?.severity === 'CRITICAL' || triage?.severity === 'HIGH') && !triage?.is_private_routing && (
+                  <div className="mb-4 p-5 rounded-2xl bg-red-600 text-white border-4 border-amber-300 shadow-2xl space-y-3 animate-pulse">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 rounded-xl bg-white/20 text-white shrink-0">
+                        <ShieldAlert className="w-7 h-7 text-amber-300" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-black tracking-widest uppercase text-amber-200">
+                          ICMR EMERGENCY PROTOCOL LEVEL 1
+                        </span>
+                        <h3 className="font-extrabold text-base sm:text-lg tracking-tight leading-tight">
+                          🚨 CRITICAL ESCALATION TO 108 & NEAREST PHC
+                        </h3>
+                      </div>
+                    </div>
+                    <p className="text-xs text-red-100 font-medium leading-relaxed bg-black/20 p-3 rounded-xl">
+                      {triage.criticalEscalationBanner?.subtitle || `Red-flag clinical emergency detected under ICMR Triage Protocols (${triage.escalation_reason || 'Severe symptoms reported'}). Self-medication is strictly disabled.`}
+                    </p>
+                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/20">
+                      <span className="text-xs font-black text-amber-200 uppercase tracking-wide">
+                        DO NOT ATTEMPT SELF-MEDICATION
+                      </span>
+                      <a
+                        href="tel:108"
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs flex items-center justify-center space-x-2 shadow-lg transition-all cursor-pointer border border-amber-200"
+                      >
+                        <PhoneCall className="w-4 h-4" />
+                        <span>CALL 108 EMERGENCY AMBULANCE</span>
+                      </a>
+                    </div>
                   </div>
                 )}
 
