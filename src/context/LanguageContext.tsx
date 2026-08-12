@@ -122,6 +122,24 @@ const UI_TRANSLATIONS: Translations = {
     mr: 'आधीच नोंदणीकृत? साइन इन करा',
     ta: 'ஏற்கனவே பதிவு செய்தவரா? உள்நுழைக'
   },
+  createAshaAccountDesc: {
+    en: 'Register an official ASHA worker account with your PHC email & password to access the emergency escalation queue.',
+    hi: 'आपातकालीन एस्केलेशन कतार तक पहुंचने के लिए अपने पीएचसी ईमेल और पासवर्ड के साथ एक आधिकारिक आशा कार्यकर्ता खाता पंजीकृत करें।',
+    mr: 'आपत्कालीन रांगेत प्रवेश करण्यासाठी आपल्या पीएचसी ईमेल व पासवर्डने नवीन आशा खाते नोंदणी करा.',
+    ta: 'அவசர நிலை வரிசையை அணுக புதிய ஆஷா கணக்கை பதிவு செய்யவும்.'
+  },
+  registerAshaAccountBtn: {
+    en: 'Register ASHA Account',
+    hi: 'आशा खाता पंजीकृत करें',
+    mr: 'आशा खाते नोंदणी करा',
+    ta: 'ஆஷா கணக்கை பதிவு செய்க'
+  },
+  alreadyHaveAccount: {
+    en: 'Already Registered? Sign In',
+    hi: 'पहले से पंजीकृत? साइन इन करें',
+    mr: 'आधीच नोंदणीकृत? साइन इन करा',
+    ta: 'ஏற்கனவே பதிவு செய்தவரா? உள்நுழைக'
+  },
   tabTriage: {
     en: 'Symptom Triage',
     hi: 'लक्षण जांच (Triage)',

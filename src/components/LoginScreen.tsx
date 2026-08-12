@@ -21,10 +21,12 @@ export const LoginScreen: React.FC = () => {
   const [ashaPassword, setAshaPassword] = useState('');
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleGoogleSignIn = async () => {
     setErrorMessage('');
+    setSuccessMessage('');
     setIsSubmitting(true);
     try {
       await loginWithGoogle();
@@ -47,10 +49,13 @@ export const LoginScreen: React.FC = () => {
       return;
     }
     setErrorMessage('');
+    setSuccessMessage('');
     setIsSubmitting(true);
     try {
       if (isRegisterMode) {
         await createAshaAccount(ashaEmail, ashaPassword);
+        setSuccessMessage(`✓ ASHA Account registered successfully! Please click "Sign In as ASHA Worker" below.`);
+        setIsRegisterMode(false);
       } else {
         await loginAsAsha(ashaEmail, ashaPassword);
       }
@@ -122,6 +127,14 @@ export const LoginScreen: React.FC = () => {
           <div className="p-3.5 rounded-xl bg-red-950/80 border border-red-800 text-red-200 text-xs flex items-start space-x-2 animate-fade-in">
             <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
             <p className="leading-snug">{errorMessage}</p>
+          </div>
+        )}
+
+        {/* Success Feedback Banner */}
+        {successMessage && (
+          <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-700 text-emerald-200 text-xs flex items-start space-x-2 animate-fade-in">
+            <Sparkles className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+            <p className="leading-snug font-semibold">{successMessage}</p>
           </div>
         )}
 

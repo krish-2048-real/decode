@@ -172,7 +172,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     let firebaseAuthSuccess = false;
-    let authErrorMessage = '';
 
     try {
       const res = await signInWithEmailAndPassword(auth, cleanEmail, pass);
@@ -181,15 +180,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
     } catch (err: any) {
       console.warn('Firebase ASHA sign in error:', err);
-      authErrorMessage = err.message || '';
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setLoading(false);
         throw new Error('Incorrect password entered. Please enter the valid account password.');
       }
     }
 
-    // If Firebase Auth failed and user was not registered locally or default demo credentials
-    const isDemoCredential = cleanEmail === 'asha.worker@phc.gov.in' || cleanEmail.includes('asha');
+    // Exact demo credential match only (no loose substring matching!)
+    const isDemoCredential = cleanEmail === 'asha.worker@phc.gov.in';
+
     if (!firebaseAuthSuccess && !existingLocalUser && !isDemoCredential) {
       setLoading(false);
       throw new Error('No ASHA account found for this email. Please click "New ASHA Worker? Register Account" below to register.');
@@ -216,6 +215,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const cleanEmail = (email || '').toLowerCase().trim();
     const regUsers = getRegisteredAshaUsers();
 
+    if (regUsers[cleanEmail]) {
+      setLoading(false);
+      throw new Error('This email is already registered as an ASHA account. Please switch to "Sign In" mode.');
+    }
+
     const ashaProf: UserProfile = {
       uid: 'asha_user_' + Date.now(),
       displayName: 'ASHA Worker (' + (cleanEmail ? cleanEmail.split('@')[0] : 'PHC') + ')',
@@ -234,25 +238,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: any) {
       console.warn('Firebase ASHA registration error (registering locally):', err);
       if (err.code === 'auth/email-already-in-use') {
-        // If email already in use on Firebase, verify password via sign-in
-        try {
-          const signRes = await signInWithEmailAndPassword(auth, cleanEmail, pass);
-          ashaProf.uid = signRes.user.uid;
-        } catch (sErr: any) {
-          setLoading(false);
-          throw new Error('This email is already registered with a different password. Please sign in instead.');
-        }
+        setLoading(false);
+        throw new Error('This email is already registered. Please click "Already Registered? Sign In" below.');
       }
     }
 
-    // Save registered user profile and password
+    // Save registered user profile and password in registry WITHOUT auto-logging in!
     regUsers[cleanEmail] = { pass, profile: ashaProf };
     localStorage.setItem('arogya_registered_asha_users', JSON.stringify(regUsers));
-    localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
-    localStorage.setItem('arogya_is_guest', 'true');
-    setIsGuest(true);
-    setUserProfile(ashaProf);
-    setNeedsProfileSetup(false);
     setLoading(false);
   };
 
