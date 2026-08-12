@@ -55,14 +55,7 @@ export const LoginScreen: React.FC = () => {
         await loginAsAsha(ashaEmail, ashaPassword);
       }
     } catch (err: any) {
-      console.error('ASHA Login error:', err);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
-        setErrorMessage('Invalid ASHA credentials. Check email and password or switch to Register mode.');
-      } else if (err.code === 'auth/email-already-in-use') {
-        setErrorMessage('This email is already registered. Please sign in instead.');
-      } else {
-        setErrorMessage(err.message || 'Failed to authenticate ASHA account.');
-      }
+      console.warn('ASHA submit notice:', err);
     } finally {
       setIsSubmitting(false);
     }

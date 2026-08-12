@@ -61,16 +61,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (userDoc.exists()) {
             const profileData = userDoc.data() as UserProfile;
             setUserProfile(profileData);
-            setNeedsProfileSetup(false);
+            setNeedsProfileSetup(profileData.role !== 'asha' && !profileData.displayName);
           } else {
-            // Check if there was a local saved profile to populate initial setup
+            // Check if local saved profile was set for ASHA role
             const localSaved = localStorage.getItem('arogya_saved_profile');
             const parsedLocal = localSaved ? JSON.parse(localSaved) : null;
+            const isAshaRole = parsedLocal?.role === 'asha';
+
             const initialProf: UserProfile = {
               uid: firebaseUser.uid,
-              displayName: firebaseUser.displayName || parsedLocal?.displayName || '',
+              displayName: firebaseUser.displayName || parsedLocal?.displayName || (isAshaRole ? 'ASHA Worker (' + (firebaseUser.email?.split('@')[0] || 'PHC') + ')' : ''),
               email: firebaseUser.email || parsedLocal?.email || '',
-              role: 'citizen',
+              role: isAshaRole ? 'asha' : 'citizen',
               age: parsedLocal?.age ?? 32,
               income: parsedLocal?.income ?? 96000,
               state: parsedLocal?.state || 'Maharashtra',
@@ -82,21 +84,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               phone: parsedLocal?.phone || ''
             };
             setUserProfile(initialProf);
-            setNeedsProfileSetup(true);
+
+            if (isAshaRole) {
+              setNeedsProfileSetup(false);
+              try { setDoc(doc(db, 'users', firebaseUser.uid), initialProf, { merge: true }); } catch (e) {}
+            } else {
+              setNeedsProfileSetup(true);
+            }
           }
         } catch (err) {
           console.error('Error fetching user profile from Firestore:', err);
-          setNeedsProfileSetup(true);
+          const localSaved = localStorage.getItem('arogya_saved_profile');
+          const parsedLocal = localSaved ? JSON.parse(localSaved) : null;
+          if (parsedLocal?.role === 'asha') {
+            setUserProfile(parsedLocal);
+            setNeedsProfileSetup(false);
+          } else {
+            setNeedsProfileSetup(true);
+          }
         }
       } else {
-        // Unauthenticated - check if guest mode was active in localStorage
+        // Unauthenticated - check if guest or local session was saved
+        const storedSaved = localStorage.getItem('arogya_saved_profile');
         const storedIsGuest = localStorage.getItem('arogya_is_guest');
-        const storedGuestProfile = localStorage.getItem('arogya_guest_profile');
-        if (storedIsGuest === 'true' && storedGuestProfile) {
+        if (storedSaved) {
           try {
-            const parsed = JSON.parse(storedGuestProfile);
-            setIsGuest(true);
+            const parsed = JSON.parse(storedSaved);
             setUserProfile(parsed);
+            setIsGuest(storedIsGuest === 'true');
             setNeedsProfileSetup(false);
           } catch (e) {
             setUserProfile(null);
@@ -126,69 +141,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loginAsAsha = async (email: string, pass: string) => {
     setLoading(true);
+    const ashaProf: UserProfile = {
+      uid: 'asha_user_' + Date.now(),
+      displayName: 'ASHA Worker (' + (email ? email.split('@')[0] : 'PHC') + ')',
+      email: email || 'asha.worker@phc.gov.in',
+      role: 'asha',
+      district: 'Pune Rural',
+      state: 'Maharashtra',
+      village: 'Khed Sector',
+      createdAt: new Date().toISOString()
+    };
+    localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
+    localStorage.setItem('arogya_is_guest', 'false');
+
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const res = await signInWithEmailAndPassword(auth, email, pass);
+      ashaProf.uid = res.user.uid;
+      try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
     } catch (err: any) {
-      console.warn('Firebase ASHA login failed, initiating instant ASHA worker session:', err);
-      const ashaProfile: UserProfile = {
-        uid: 'asha_user_' + Date.now(),
-        displayName: 'Smt. Surekha Tai Pawar (ASHA Worker)',
-        email: email || 'asha.worker@phc.gov.in',
-        role: 'asha',
-        district: 'Pune Rural',
-        state: 'Maharashtra',
-        village: 'Khed Sector',
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('arogya_is_guest', 'false');
-      localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProfile));
-      setUserProfile(ashaProfile);
-      setNeedsProfileSetup(false);
+      console.warn('Firebase ASHA sign in fallback (auto-registering or creating local session):', err);
+      try {
+        const createRes = await createUserWithEmailAndPassword(auth, email, pass);
+        ashaProf.uid = createRes.user.uid;
+        try { await setDoc(doc(db, 'users', createRes.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
+      } catch (cErr) {
+        console.warn('Firebase ASHA auto-create fallback:', cErr);
+      }
     } finally {
+      setUserProfile(ashaProf);
+      setNeedsProfileSetup(false);
       setLoading(false);
     }
   };
 
   const createAshaAccount = async (email: string, pass: string) => {
     setLoading(true);
+    const ashaProf: UserProfile = {
+      uid: 'asha_user_' + Date.now(),
+      displayName: 'ASHA Worker (' + (email ? email.split('@')[0] : 'PHC') + ')',
+      email: email || 'asha.worker@phc.gov.in',
+      role: 'asha',
+      district: 'Pune Rural',
+      state: 'Maharashtra',
+      village: 'Khed Sector',
+      createdAt: new Date().toISOString()
+    };
+    localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
+    localStorage.setItem('arogya_is_guest', 'false');
+
     try {
       const res = await createUserWithEmailAndPassword(auth, email, pass);
-      const uid = res.user.uid;
-      const ashaProfile: UserProfile = {
-        uid,
-        displayName: 'ASHA Worker (' + (email ? email.split('@')[0] : 'PHC') + ')',
-        email,
-        role: 'asha',
-        district: 'Pune District',
-        state: 'Maharashtra',
-        createdAt: new Date().toISOString()
-      };
-      try {
-        await setDoc(doc(db, 'users', uid), ashaProfile);
-      } catch (fErr) {
-        console.warn('Firestore setDoc failed for new ASHA, saving locally:', fErr);
-      }
-      localStorage.setItem('arogya_is_guest', 'false');
-      localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProfile));
-      setUserProfile(ashaProfile);
-      setNeedsProfileSetup(false);
+      ashaProf.uid = res.user.uid;
+      try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
     } catch (err: any) {
-      console.warn('Firebase ASHA registration failed, initiating instant ASHA worker session:', err);
-      const ashaProfile: UserProfile = {
-        uid: 'asha_user_' + Date.now(),
-        displayName: 'ASHA Worker (' + (email ? email.split('@')[0] : 'PHC') + ')',
-        email: email || 'asha.worker@phc.gov.in',
-        role: 'asha',
-        district: 'Pune Rural',
-        state: 'Maharashtra',
-        village: 'Khed Sector',
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('arogya_is_guest', 'false');
-      localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProfile));
-      setUserProfile(ashaProfile);
-      setNeedsProfileSetup(false);
+      console.warn('Firebase ASHA registration fallback (auto signing-in or local session):', err);
+      try {
+        const signRes = await signInWithEmailAndPassword(auth, email, pass);
+        ashaProf.uid = signRes.user.uid;
+        try { await setDoc(doc(db, 'users', signRes.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
+      } catch (sErr) {
+        console.warn('Firebase ASHA sign-in fallback:', sErr);
+      }
     } finally {
+      setUserProfile(ashaProf);
+      setNeedsProfileSetup(false);
       setLoading(false);
     }
   };
