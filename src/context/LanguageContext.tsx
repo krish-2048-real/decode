@@ -20,6 +20,42 @@ const UI_TRANSLATIONS: Translations = {
     mr: 'ग्रामीण आरोग्य तपासणी व योजना सहाय्यक',
     ta: 'கிராமப்புற சுகாதார உதவி மையம்'
   },
+  appSubtitle: {
+    en: 'AI Rural Healthcare Triage & Field Escalation Portal',
+    hi: 'एआई ग्रामीण स्वास्थ्य जांच और फील्ड एस्केलेशन पोर्टल',
+    mr: 'एआय ग्रामीण आरोग्य तपासणी आणि फील्ड एस्केलेशन पोर्टल',
+    ta: 'AI கிராமப்புற சுகாதார உதவி போர்ட்டல்'
+  },
+  citizenPatientTab: {
+    en: 'Citizen Patient Tab',
+    hi: 'Citizen Patient Tab',
+    mr: 'Citizen Patient Tab',
+    ta: 'Citizen Patient Tab'
+  },
+  ashaWorkerTab: {
+    en: 'Asha Worker Tab',
+    hi: 'Asha Worker Tab',
+    mr: 'Asha Worker Tab',
+    ta: 'Asha Worker Tab'
+  },
+  citizenLoginDesc: {
+    en: 'Sign in with your Google account for secure personalized triage history and digital health pass generation.',
+    hi: 'सुरक्षित व्यक्तिगत जांच इतिहास और डिजिटल स्वास्थ्य पास के लिए गूगल खाते से साइन इन करें।',
+    mr: 'सुरक्षित वैयक्तिक तपासणी इतिहास आणि डिजिटल आरोग्य पाससाठी Google खात्याने साइन इन करा.',
+    ta: 'பாதுகாப்பான தனிப்பயனாக்கப்பட்ட வரலாற்றுக்கு Google கணக்கில் உள்நுழையவும்.'
+  },
+  signInWithGoogle: {
+    en: 'Sign in with Google',
+    hi: 'Google के साथ साइन इन करें',
+    mr: 'Google सह साइन इन करा',
+    ta: 'Google மூலம் உள்நுழைக'
+  },
+  continueAsGuest: {
+    en: 'Continue as Demo Guest',
+    hi: 'डेमो अतिथि के रूप में जारी रखें',
+    mr: 'डेमो अतिथी म्हणून सुरू ठेवा',
+    ta: 'டெமோ விருந்தினராக தொடரவும்'
+  },
   tabTriage: {
     en: 'Symptom Triage',
     hi: 'लक्षण जांच (Triage)',

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { runTriageSymptom, TriageInput } from "../backend/services/triageService";
 import { matchSchemes } from "../backend/services/schemesService";
