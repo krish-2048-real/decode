@@ -130,13 +130,13 @@ export function createSampleBplOcrResult(userState?: string): DocumentOcrResult 
     success: true,
     documentType: "NFSA Yellow BPL Ration Card",
     extractedProfile: {
-      age: 32,
-      annualIncome: 76000,
+      age: 28,
+      annualIncome: 48000,
       isBPL: true,
       gender: 'Female',
       state: userState || 'Maharashtra',
       district: 'Pune Rural (Khed Sector)',
-      rawTextSnippet: 'Verified Antyodaya/BPL Ration Card #MH-8823-991A. Annual Family Income: ₹76,000. Verified under NFSA 2013.'
+      rawTextSnippet: 'Verified Antyodaya/BPL Ration Card #MH-8823-991A. Annual Family Income: ₹48,000. Verified under NFSA 2013.'
     },
     confidenceScore: 98,
     message: 'Sample BPL Ration Card scanned successfully via Gemini Vision OCR!'
