@@ -18,10 +18,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// Normalize request URL path to handle Vercel serverless rewrites seamlessly
+app.use((req, _res, next) => {
+  if (req.url.startsWith('/api/')) {
+    req.url = req.url.substring(4);
+  } else if (req.url === '/api') {
+    req.url = '/';
+  }
+  next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 
 // Health check endpoint
-app.get(["/api/health", "/health"], (req, res) => {
+app.get(["/health", "/api/health", "/"], (req, res) => {
   res.json({ status: "ok", app: "Arogya Sahayak", environment: "vercel-serverless", timestamp: new Date().toISOString() });
 });
 
