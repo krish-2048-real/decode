@@ -152,7 +152,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString()
     };
     localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
-    localStorage.setItem('arogya_is_guest', 'false');
+    localStorage.setItem('arogya_is_guest', 'true');
+    setIsGuest(true);
+    setUserProfile(ashaProf);
+    setNeedsProfileSetup(false);
 
     try {
       const res = await signInWithEmailAndPassword(auth, email, pass);
@@ -187,7 +190,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString()
     };
     localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
-    localStorage.setItem('arogya_is_guest', 'false');
+    localStorage.setItem('arogya_is_guest', 'true');
+    setIsGuest(true);
+    setUserProfile(ashaProf);
+    setNeedsProfileSetup(false);
 
     try {
       const res = await createUserWithEmailAndPassword(auth, email, pass);

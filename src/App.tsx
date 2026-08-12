@@ -125,7 +125,7 @@ function AppContent() {
 }
 
 function MainRouter() {
-  const { user, loading, needsProfileSetup, isGuest } = useAuth();
+  const { user, userProfile, loading, needsProfileSetup, isGuest } = useAuth();
 
   if (loading) {
     return (
@@ -138,11 +138,14 @@ function MainRouter() {
     );
   }
 
-  if (!user && !isGuest) {
+  // User is authenticated if firebase user exists, or guest mode is active, or userProfile exists (e.g. ASHA worker profile)
+  const isAuthenticated = Boolean(user || isGuest || userProfile);
+
+  if (!isAuthenticated) {
     return <LoginScreen />;
   }
 
-  if (needsProfileSetup) {
+  if (needsProfileSetup && userProfile?.role !== 'asha') {
     return <ProfileSetupScreen />;
   }
 
