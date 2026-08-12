@@ -10,12 +10,12 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 
 // Health check endpoint
-app.get("/api/health", (req, res) => {
+app.get(["/api/health", "/health"], (req, res) => {
   res.json({ status: "ok", app: "Arogya Sahayak", environment: "vercel-serverless", timestamp: new Date().toISOString() });
 });
 
 // Triage Symptom endpoint
-app.post("/api/triageSymptom", async (req, res) => {
+app.post(["/api/triageSymptom", "/triageSymptom"], async (req, res) => {
   try {
     const input: TriageInput = req.body;
     if (!input || (!input.message && !input.imageBase64)) {
@@ -54,7 +54,7 @@ app.post("/api/triageSymptom", async (req, res) => {
 });
 
 // Schemes Matcher endpoint
-app.post("/api/matchSchemes", (req, res) => {
+app.post(["/api/matchSchemes", "/matchSchemes"], (req, res) => {
   try {
     const matches = matchSchemes(req.body || {});
     res.json({ success: true, count: matches.length, matches });
@@ -65,7 +65,7 @@ app.post("/api/matchSchemes", (req, res) => {
 });
 
 // Geocode location search endpoint via Nominatim API
-app.get("/api/geocode", async (req, res) => {
+app.get(["/api/geocode", "/geocode"], async (req, res) => {
   try {
     const q = req.query.q as string;
     if (!q || !q.trim()) {
@@ -102,7 +102,7 @@ app.get("/api/geocode", async (req, res) => {
 });
 
 // PHC Facilities endpoint with OSM Overpass integration
-app.get("/api/phcFacilities", async (req, res) => {
+app.get(["/api/phcFacilities", "/phcFacilities"], async (req, res) => {
   try {
     const lat = req.query.lat ? parseFloat(req.query.lat as string) : undefined;
     const lng = req.query.lng ? parseFloat(req.query.lng as string) : undefined;
@@ -123,7 +123,7 @@ app.get("/api/phcFacilities", async (req, res) => {
 });
 
 // ASHA Alerts queue endpoint
-app.get("/api/ashaAlerts", async (req, res) => {
+app.get(["/api/ashaAlerts", "/ashaAlerts"], async (req, res) => {
   try {
     const alerts = await getAshaAlertsAsync();
     res.json({ success: true, count: alerts.length, alerts });
@@ -133,7 +133,7 @@ app.get("/api/ashaAlerts", async (req, res) => {
   }
 });
 
-app.patch("/api/ashaAlerts/:id", async (req, res) => {
+app.patch(["/api/ashaAlerts/:id", "/ashaAlerts/:id"], async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
@@ -152,7 +152,7 @@ app.patch("/api/ashaAlerts/:id", async (req, res) => {
 });
 
 // Village Health Advisory Generator endpoint
-app.post("/api/generateAdvisory", async (req, res) => {
+app.post(["/api/generateAdvisory", "/generateAdvisory"], async (req, res) => {
   try {
     const { district, language } = req.body || {};
     const advisory = await generateVillageAdvisory(district || "Pune Rural (Khed Sector)", language || "en");
