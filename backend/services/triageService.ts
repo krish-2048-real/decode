@@ -96,25 +96,26 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
 
   if (!apiKey) {
     let fallbackText = '';
+    const extractedSymptom = message ? message.trim() : "Reported Health Concern";
     if (language === 'hi') {
       fallbackText = matchedRedFlag 
         ? `🚨 आपात्कालीन स्वास्थ्य चेतावनी: आपके लक्षणों ("${matchedRedFlag}") के आधार पर तुरंत नजदीकी प्राथमिक स्वास्थ्य केंद्र (PHC) या 108 एम्बुलेंस सेवा से संपर्क करें।`
-        : `नमस्ते! आपके द्वारा बताए गए लक्षणों के लिए प्राथमिक स्वास्थ्य देखभाल सलाह: प्रचुर मात्रा में स्वच्छ जल पिएं, विश्राम करें और अपने नजदीकी पीएचसी (PHC) केंद्र पर आशा कार्यकर्ता से संपर्क करें। ${isPrivateRouting ? '\n🔒 गोपनीय परामर्श सक्रिय: 14416 (Tele-MANAS) या eSanjeevani पर निःशुल्क कॉल करें।' : ''}`;
+        : `नमस्ते! आपके द्वारा बताए गए लक्षणों ("${extractedSymptom}") के लिए प्राथमिक स्वास्थ्य देखभाल सलाह: प्रचुर मात्रा में स्वच्छ जल पिएं, विश्राम करें और अपने नजदीकी पीएचसी (PHC) केंद्र पर आशा कार्यकर्ता से संपर्क करें। ${isPrivateRouting ? '\n🔒 गोपनीय परामर्श सक्रिय: 14416 (Tele-MANAS) या eSanjeevani पर निःशुल्क कॉल करें।' : ''}`;
     } else if (language === 'mr') {
       fallbackText = matchedRedFlag
         ? `🚨 तातडीची आरोग्य सूचना: आपल्या लक्षणांच्या आधारे ("${matchedRedFlag}") ताबडतोब जवळच्या प्राथमिक आरोग्य केंद्रात (PHC) किंवा १०८ रुग्णवाहिकेस कॉल करा.`
-        : `नमस्ते! तुमच्या लक्षणांसाठी प्राथमिक आरोग्य सल्ला: विश्रांती घ्या, भरपूर पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा. ${isPrivateRouting ? '\n🔒 गोपनीय सल्लामसलत सक्रिय: १४४१६ (Tele-MANAS) वर विनामूल्य कॉल करा.' : ''}`;
+        : `नमस्ते! तुमच्या लक्षणांसाठी ("${extractedSymptom}") प्राथमिक आरोग्य सल्ला: विश्रांती घ्या, भरपूर पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा. ${isPrivateRouting ? '\n🔒 गोपनीय सल्लामसलत सक्रिय: १४४१६ (Tele-MANAS) वर विनामूल्य कॉल करा.' : ''}`;
     } else {
       fallbackText = matchedRedFlag
         ? `🚨 EMERGENCY HEALTH ALERT: Based on your reported red-flag symptom ("${matchedRedFlag}"), please seek immediate medical transport to your nearest Primary Health Centre or call 108 Emergency Ambulance.`
-        : `Namaste. For your reported symptoms, please stay hydrated with clean water, rest adequately, and consult your local ASHA worker or Primary Health Centre (PHC) doctor. ${isPrivateRouting ? '\n🔒 Confidential Route Active: Call 14416 (Tele-MANAS National Helpline) or use eSanjeevani Telemedicine for private consultation.' : ''}`;
+        : `Namaste. Primary health guidance for reported symptom "${extractedSymptom}": Stay hydrated with clean boiled water or ORS, rest adequately, and consult your local ASHA worker or Primary Health Centre (PHC) doctor. ${isPrivateRouting ? '\n🔒 Confidential Route Active: Call 14416 (Tele-MANAS National Helpline) or use eSanjeevani Telemedicine for private consultation.' : ''}`;
     }
 
     result = {
-      symptoms: imageBase64 ? ["Visible skin/wound condition", "Reported symptom notes"] : [message || "Reported health concern"],
+      symptoms: imageBase64 ? ["Visible skin/wound condition", extractedSymptom] : [extractedSymptom],
       severity: matchedRedFlag ? "CRITICAL" : (isSensitive ? "MODERATE" : "MILD"),
       triage_advice: fallbackText,
-      disclaimer: "Disclaimer: This AI & clinical rule-based triage tool provides preliminary guidance and does not replace emergency medical diagnosis.",
+      disclaimer: "Disclaimer: This preliminary triage tool provides general care guidance and does not replace emergency clinical evaluation.",
       escalate_immediately: matchedRedFlag ? true : false,
       escalation_reason: matchedRedFlag ? `Red-flag symptom detected: "${matchedRedFlag}". Emergency care required!` : "",
       is_sensitive: isSensitive,
@@ -155,7 +156,7 @@ CRITICAL INSTRUCTIONS:
 3. "escalate_immediately" MUST be true for red flag symptoms like chest pain, breathing difficulty, severe bleeding, high infant fever, convulsions, snake bites, stroke.
 4. Detect if the message covers sensitive categories: Mental Health, Sexual/Reproductive Health, or Domestic Violence/Abuse. Set is_sensitive to true if detected.
 5. If an image is attached, perform a visual symptom inspection (skin rashes, lesions, wounds, eye redness, swelling). Populate visual_analysis with description, concern_category, and urgency in ${fullLang}.
-6. Provide concise, compassionate advice suitable for rural Indian citizens in ${fullLang}.`;
+6. Provide highly specific, actionable, compassionate advice tailored strictly to the reported symptoms and duration in ${fullLang}.`;
 
       const promptText = `Patient Message: "${message}"
 User Profile: ${JSON.stringify(userProfile || {})}
@@ -180,62 +181,90 @@ Image Included: ${imageBase64 ? 'YES' : 'NO'}`;
       }
       contents.push(promptText);
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.6-flash",
-        contents,
-        config: {
-          systemInstruction: systemPrompt,
-          responseMimeType: "application/json",
-          responseSchema: {
+      const responseSchema = {
+        type: Type.OBJECT,
+        properties: {
+          symptoms: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
+            description: "List of identified symptoms"
+          },
+          severity: {
+            type: Type.STRING,
+            description: "MILD, MODERATE, HIGH, or CRITICAL"
+          },
+          triage_advice: {
+            type: Type.STRING,
+            description: "Actionable medical advice and immediate care instructions in requested language"
+          },
+          disclaimer: {
+            type: Type.STRING,
+            description: "Standard medical disclaimer in requested language"
+          },
+          escalate_immediately: {
+            type: Type.BOOLEAN,
+            description: "True if emergency or red-flag condition requiring immediate hospital/PHC visit"
+          },
+          escalation_reason: {
+            type: Type.STRING,
+            description: "Reason why immediate escalation is required, or empty string if not"
+          },
+          is_sensitive: {
+            type: Type.BOOLEAN,
+            description: "True if topic involves mental health, domestic violence, sexual/reproductive health, or requested private"
+          },
+          sensitive_category: {
+            type: Type.STRING,
+            description: "Category of sensitive topic if detected"
+          },
+          visual_analysis: {
             type: Type.OBJECT,
             properties: {
-              symptoms: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "List of identified symptoms"
-              },
-              severity: {
-                type: Type.STRING,
-                description: "MILD, MODERATE, HIGH, or CRITICAL"
-              },
-              triage_advice: {
-                type: Type.STRING,
-                description: "Actionable medical advice and immediate care instructions in requested language"
-              },
-              disclaimer: {
-                type: Type.STRING,
-                description: "Standard medical disclaimer in requested language"
-              },
-              escalate_immediately: {
-                type: Type.BOOLEAN,
-                description: "True if emergency or red-flag condition requiring immediate hospital/PHC visit"
-              },
-              escalation_reason: {
-                type: Type.STRING,
-                description: "Reason why immediate escalation is required, or empty string if not"
-              },
-              is_sensitive: {
-                type: Type.BOOLEAN,
-                description: "True if topic involves mental health, domestic violence, sexual/reproductive health, or requested private"
-              },
-              sensitive_category: {
-                type: Type.STRING,
-                description: "Category of sensitive topic if detected"
-              },
-              visual_analysis: {
-                type: Type.OBJECT,
-                properties: {
-                  description: { type: Type.STRING },
-                  concern_category: { type: Type.STRING },
-                  urgency: { type: Type.STRING }
-                },
-                required: ["description", "concern_category", "urgency"]
-              }
+              description: { type: Type.STRING },
+              concern_category: { type: Type.STRING },
+              urgency: { type: Type.STRING }
             },
-            required: ["symptoms", "severity", "triage_advice", "disclaimer", "escalate_immediately", "escalation_reason"]
+            required: ["description", "concern_category", "urgency"]
+          }
+        },
+        required: ["symptoms", "severity", "triage_advice", "disclaimer", "escalate_immediately", "escalation_reason"]
+      };
+
+      // Model fallback and retry loop for high availability
+      const modelsToTry = ["gemini-3.6-flash", "gemini-flash-latest"];
+      let response: any = null;
+      let lastCallError: any = null;
+
+      for (const modelName of modelsToTry) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+          try {
+            response = await ai.models.generateContent({
+              model: modelName,
+              contents,
+              config: {
+                systemInstruction: systemPrompt,
+                responseMimeType: "application/json",
+                responseSchema
+              }
+            });
+            if (response && response.text) {
+              console.log(`[TRIAGE API SUCCESS] Gemini model ${modelName} responded successfully on attempt ${attempt}.`);
+              break;
+            }
+          } catch (err: any) {
+            lastCallError = err;
+            console.warn(`[TRIAGE API RETRY] Model ${modelName} attempt ${attempt} failed: ${err?.message || err}.`);
+            if (attempt < 2) {
+              await new Promise(r => setTimeout(r, 500));
+            }
           }
         }
-      });
+        if (response && response.text) break;
+      }
+
+      if (!response || !response.text) {
+        throw lastCallError || new Error("All Gemini model attempts failed to produce response text.");
+      }
 
       let rawText = response.text || "{}";
       let cleanText = rawText.trim();

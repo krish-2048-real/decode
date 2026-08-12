@@ -54,20 +54,21 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
   }
 
   const lang = input.language || 'en';
+  const symptomNote = input.message ? input.message.trim() : "Reported health concern";
   let advice = '';
 
   if (lang === 'hi') {
     advice = matchedRedFlag
       ? `🚨 आपात्कालीन चेतावनी: आपके लक्षणों ("${matchedRedFlag}") के आधार पर तुरंत नजदीकी प्राथमिक स्वास्थ्य केंद्र (PHC) या 108 एम्बुलेंस सेवा से संपर्क करें।`
-      : `नमस्ते! स्वास्थ्य सलाह: प्रचुर मात्रा में स्वच्छ उबला पानी पिएं, विश्राम करें और नजदीकी पीएचसी (PHC) में आशा कार्यकर्ता से परामर्श लें।`;
+      : `नमस्ते! आपके द्वारा बताए गए लक्षणों ("${symptomNote}") के लिए प्राथमिक स्वास्थ्य सलाह: प्रचुर मात्रा में स्वच्छ उबला पानी पिएं, विश्राम करें और नजदीकी पीएचसी (PHC) में आशा कार्यकर्ता से परामर्श लें।`;
   } else if (lang === 'mr') {
     advice = matchedRedFlag
       ? `🚨 तातडीची आरोग्य सूचना: आपल्या लक्षणांच्या आधारे ("${matchedRedFlag}") ताबडतोब जवळच्या प्राथमिक आरोग्य केंद्रात (PHC) किंवा १०८ रुग्णवाहिकेस कॉल करा.`
-      : `नमस्ते! आरोग्य सल्ला: विश्रांती घ्या, भरपूर स्वच्छ उकळलेले पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा.`;
+      : `नमस्ते! तुमच्या लक्षणांसाठी ("${symptomNote}") आरोग्य सल्ला: विश्रांती घ्या, भरपूर स्वच्छ उकळलेले पाणी प्या आणि जवळच्या प्राथमिक आरोग्य केंद्रातील आशा सेवियेशी संपर्क साधा.`;
   } else {
     advice = matchedRedFlag
       ? `🚨 EMERGENCY ALERT: Based on reported red-flag symptom ("${matchedRedFlag}"), please seek immediate medical transport to your nearest Primary Health Centre or call 108 Ambulance.`
-      : `Namaste. For your reported symptoms, please stay hydrated with clean water, rest adequately, and consult your local ASHA worker or Primary Health Centre (PHC).`;
+      : `Namaste. For your reported symptoms ("${symptomNote}"), please stay hydrated with clean water, rest adequately, and consult your local ASHA worker or Primary Health Centre (PHC).`;
   }
 
   return {
