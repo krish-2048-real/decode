@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { AshaAlert } from '../types/health';
+import { AshaAlert, AshaNotification, ProactiveAlert } from '../types/health';
 import { getAshaAlertsAsync, createAshaAlert } from '../services/alertsService';
 import { QrScannerModal } from './QrScannerModal';
 import { VillageHealthAdvisoryModal } from './VillageHealthAdvisoryModal';
@@ -23,7 +23,15 @@ import {
   BellRing,
   BellOff,
   Volume2,
-  X
+  X,
+  Inbox,
+  Send,
+  Calendar,
+  Bug,
+  Shield,
+  AlertTriangle as AlertTriangleIcon,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export const AshaAlertsQueue: React.FC = () => {
@@ -40,6 +48,10 @@ export const AshaAlertsQueue: React.FC = () => {
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
   const [activeEmergencyToast, setActiveEmergencyToast] = useState<AshaAlert | null>(null);
+  const [notificationLog, setNotificationLog] = useState<AshaNotification[]>([]);
+  const [proactiveAlerts, setProactiveAlerts] = useState<ProactiveAlert[]>([]);
+  const [showNotifLog, setShowNotifLog] = useState(false);
+  const [showProactivePanel, setShowProactivePanel] = useState(false);
   const isInitialSnapshot = useRef(true);
 
   // Web Audio Chime Synthesis
@@ -108,10 +120,47 @@ export const AshaAlertsQueue: React.FC = () => {
     setActiveEmergencyToast(demoAlert);
   };
 
-  const triggerProactiveNotice = () => {
+  const triggerProactiveNotice = async () => {
+    // Fetch proactive alerts from backend instead of hardcoded window.alert
+    try {
+      const res = await fetch('/api/proactiveAlerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userProfile,
+          district: userProfile?.district || 'Pune Rural'
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.alerts)) {
+          setProactiveAlerts(data.alerts);
+          setShowProactivePanel(true);
+
+          // Also dispatch browser push notification
+          if ('Notification' in window && Notification.permission === 'granted' && data.alerts.length > 0) {
+            try {
+              const firstAlert = data.alerts[0];
+              new Notification(`📢 ${firstAlert.title}`, {
+                body: firstAlert.message.substring(0, 200) + '...',
+                icon: '/favicon.ico'
+              });
+            } catch (e) {
+              console.warn('Push notification error:', e);
+            }
+          }
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Proactive alerts API unavailable, using fallback:', err);
+    }
+
+    // Fallback: generate client-side proactive notice
     const schemeNotice = {
       title: '📢 Scheme Application Deadline Alert (5 Days Remaining)',
-      body: `Matched Profile: ${userProfile?.isBPL ? 'BPL Household' : 'Rural Resident'} in ${userProfile?.district || 'Pune Rural'}.\nScheme: Janani Suraksha Yojana / PM-JAY Renewal deadline approaching on August 17.\nStatus: Proactive alert sent via Push & SMS.`
+      body: `Matched Profile: ${userProfile?.isBPL ? 'BPL Household' : 'Rural Resident'} in ${userProfile?.district || 'Pune Rural'}.\nScheme: Janani Suraksha Yojana / PM-JAY Renewal deadline approaching.\nStatus: Proactive alert sent via Push & SMS.`
     };
 
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -125,7 +174,20 @@ export const AshaAlertsQueue: React.FC = () => {
       }
     }
 
-    alert(`🔔 PROACTIVE HEALTH & SCHEME UPDATE DISPATCHED!\n\nTarget Region: ${userProfile?.district || 'Pune Rural'} (${userProfile?.village || 'Khed Sector'})\nOpt-In Status: ${userProfile?.proactiveAlertsOptIn !== false ? 'Active ✓' : 'Opted-Out'}\nRecipient Phone: ${userProfile?.phone || '+91 9876543210'}\n\n1. Scheme Deadline: PM-JAY & Janani Suraksha Renewal (Deadline in 5 days)\n2. Outbreak Cluster Advisory: Waterborne Illness / Dengue Caution for ${userProfile?.village || 'Khed Sector'}\n\nDispatched via Browser Push & Twilio SMS Gateway.`);
+    // Show as in-app panel with single fallback alert
+    setProactiveAlerts([{
+      id: 'fallback_' + Date.now(),
+      type: 'scheme_deadline',
+      title: '⏰ PM-JAY & JSY Scheme Deadline Approaching',
+      message: `${userProfile?.isBPL ? 'BPL Household' : 'Rural Resident'} in ${userProfile?.district || 'Pune Rural'}: Janani Suraksha Yojana / PM-JAY renewal deadline in 5 days. Visit nearest PHC with Aadhaar and ration card.`,
+      urgency: 'WARNING',
+      deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      schemeName: 'PM-JAY / JSY',
+      schemeUrl: 'https://pmjay.gov.in',
+      district: userProfile?.district || 'Pune Rural',
+      generatedAt: new Date().toISOString(),
+    }]);
+    setShowProactivePanel(true);
   };
 
   const fetchAlerts = async () => {
@@ -158,6 +220,20 @@ export const AshaAlertsQueue: React.FC = () => {
     setIsLoading(false);
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('/api/ashaNotifications');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.notifications)) {
+          setNotificationLog(data.notifications);
+        }
+      }
+    } catch (err) {
+      console.warn('Could not fetch notification log:', err);
+    }
+  };
+
   const checkHealth = async () => {
     try {
       const res = await fetch('/api/health');
@@ -172,6 +248,7 @@ export const AshaAlertsQueue: React.FC = () => {
 
   useEffect(() => {
     fetchAlerts();
+    fetchNotifications();
     checkHealth();
 
     // Attach real-time Firestore listener for live escalations without page reloads
@@ -215,7 +292,7 @@ export const AshaAlertsQueue: React.FC = () => {
       return () => unsubscribe();
     } catch (err) {
       console.warn('Realtime listener init error:', err);
-      const interval = setInterval(fetchAlerts, 5000);
+      const interval = setInterval(() => { fetchAlerts(); fetchNotifications(); }, 5000);
       return () => clearInterval(interval);
     }
   }, []);
@@ -411,8 +488,166 @@ export const AshaAlertsQueue: React.FC = () => {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{t('refreshQueue')}</span>
           </button>
+
+          <button
+            onClick={() => { fetchNotifications(); setShowNotifLog(!showNotifLog); }}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 cursor-pointer border ${
+              showNotifLog
+                ? 'bg-sky-100 dark:bg-sky-950/80 text-sky-800 dark:text-sky-300 border-sky-300 dark:border-sky-800'
+                : 'bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 border-stone-300 dark:border-stone-700 hover:border-sky-400'
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span className="hidden sm:inline">Notification Log</span>
+            {notificationLog.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-black">
+                {notificationLog.filter(n => n.type === 'sms').length}
+              </span>
+            )}
+          </button>
         </div>
       </div>
+
+      {/* Notification Dispatch Log Panel */}
+      {showNotifLog && (
+        <div className="bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl p-5 border border-sky-300 dark:border-sky-800 shadow-md space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Inbox className="w-5 h-5 text-sky-500" />
+              <h3 className="font-bold text-sm text-stone-900 dark:text-stone-100">ASHA Notification Dispatch Log</h3>
+              <span className="px-2 py-0.5 rounded-full bg-sky-500 text-white text-[10px] font-black">
+                {notificationLog.filter(n => n.type === 'sms').length} SMS
+              </span>
+            </div>
+            <button
+              onClick={() => setShowNotifLog(false)}
+              className="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {notificationLog.length === 0 ? (
+            <p className="text-xs text-stone-500 dark:text-stone-400 text-center py-4">
+              No notifications dispatched yet. Notifications are sent automatically when CRITICAL/HIGH cases are flagged.
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {notificationLog.map((notif) => (
+                <div
+                  key={notif.id}
+                  className={`p-3 rounded-xl border text-xs space-y-1.5 ${
+                    notif.severity === 'CRITICAL'
+                      ? 'bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-900'
+                      : 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-900'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {notif.type === 'sms' ? (
+                        <Send className="w-3.5 h-3.5 text-sky-600" />
+                      ) : (
+                        <BellRing className="w-3.5 h-3.5 text-amber-600" />
+                      )}
+                      <span className="font-bold uppercase">
+                        {notif.type === 'sms' ? 'SMS Dispatched' : 'Push Notification'}
+                      </span>
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                        notif.severity === 'CRITICAL' ? 'bg-red-600 text-white' : 'bg-amber-500 text-stone-950'
+                      }`}>
+                        {notif.severity}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-stone-500">
+                      {new Date(notif.dispatchedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-stone-600 dark:text-stone-400">
+                    District: <strong>{notif.recipientDistrict}</strong> • Symptoms: {notif.symptomTags?.join(', ')}
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <span className={`w-2 h-2 rounded-full ${notif.dispatched ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                    <span className="text-[10px] font-semibold text-stone-500">
+                      {notif.dispatched ? 'Successfully dispatched' : 'Dispatch failed'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Proactive Alerts Feed Panel */}
+      {showProactivePanel && proactiveAlerts.length > 0 && (
+        <div className="bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl p-5 border-2 border-[#D4A24E]/40 shadow-md space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <BellRing className="w-5 h-5 text-[#D4A24E] animate-bounce" />
+              <h3 className="font-bold text-sm text-stone-900 dark:text-stone-100">Proactive Health & Scheme Alerts</h3>
+              <span className="px-2 py-0.5 rounded-full bg-[#D4A24E] text-slate-950 text-[10px] font-black">
+                {proactiveAlerts.length}
+              </span>
+            </div>
+            <button
+              onClick={() => setShowProactivePanel(false)}
+              className="p-1.5 rounded-lg hover:bg-stone-200 dark:hover:bg-stone-800 text-stone-500 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {proactiveAlerts.map((pa) => {
+              const urgencyColors: Record<string, string> = {
+                'URGENT': 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200',
+                'WARNING': 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200',
+                'INFO': 'bg-sky-50 dark:bg-sky-950/60 border-sky-300 dark:border-sky-800 text-sky-900 dark:text-sky-200',
+              };
+              const urgencyBadge: Record<string, string> = {
+                'URGENT': 'bg-red-600 text-white',
+                'WARNING': 'bg-amber-500 text-stone-950',
+                'INFO': 'bg-sky-500 text-white',
+              };
+              const typeIcons: Record<string, React.ReactNode> = {
+                'scheme_deadline': <Calendar className="w-4 h-4" />,
+                'outbreak_advisory': <Bug className="w-4 h-4" />,
+                'immunization_reminder': <Shield className="w-4 h-4" />,
+                'seasonal_health': <AlertTriangleIcon className="w-4 h-4" />,
+              };
+
+              return (
+                <div
+                  key={pa.id}
+                  className={`p-4 rounded-xl border ${urgencyColors[pa.urgency] || urgencyColors['INFO']} space-y-2`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {typeIcons[pa.type] || <BellRing className="w-4 h-4" />}
+                      <span className="text-xs font-bold">{pa.title}</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${urgencyBadge[pa.urgency] || urgencyBadge['INFO']}`}>
+                      {pa.urgency}
+                    </span>
+                  </div>
+                  <p className="text-xs leading-relaxed">{pa.message}</p>
+                  {pa.deadline && (
+                    <div className="flex items-center space-x-1 text-[11px] font-semibold">
+                      <Clock className="w-3 h-3" />
+                      <span>Deadline: {new Date(pa.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </div>
+                  )}
+                  {pa.schemeUrl && (
+                    <a href={pa.schemeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold underline">
+                      Official Details →
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Alerts Feed */}
       <div className="space-y-4">

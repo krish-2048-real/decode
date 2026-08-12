@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { ChatTurn, TriageResult, UserProfile } from '../types/health';
+import { ChatTurn, TriageResult, UserProfile, ProactiveAlert } from '../types/health';
 import { runTriageSymptom } from '../services/triageService';
 import { db, doc, setDoc, getDoc, sanitizeFirestoreData } from '../lib/firebase';
 import { AgentReasoningTrace } from './AgentReasoningTrace';
@@ -28,7 +28,13 @@ import {
   PhoneCall,
   X,
   Eye,
-  HeartHandshake
+  HeartHandshake,
+  BellRing,
+  Calendar,
+  Bug,
+  Shield,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 interface TriageChatProps {
@@ -57,6 +63,7 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
   const [isHealthCardOpen, setIsHealthCardOpen] = useState(false);
   const [smsSentMap, setSmsSentMap] = useState<Record<string, boolean>>({});
   const [customSmsPhone, setCustomSmsPhone] = useState<string>('');
+  const [proactiveAlertsExpanded, setProactiveAlertsExpanded] = useState<Record<string, boolean>>({});
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -577,6 +584,113 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                         </button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* AUTO CONFIRMATION RECEIPT (non-escalated cases) */}
+                {!isUser && triage && !triage.escalate_immediately && triage.confirmationReceipt && (
+                  <div className="mt-4 p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border-2 border-emerald-500/30 text-stone-900 dark:text-stone-100 text-xs space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-emerald-500/20 pb-2">
+                      <div className="flex items-center space-x-2">
+                        <div className="p-1.5 rounded-lg bg-emerald-500 text-white font-black">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-extrabold uppercase text-[10px] tracking-wider text-emerald-700 dark:text-emerald-400">
+                            CASE CONFIRMATION
+                          </span>
+                          <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">
+                            Symptoms Recorded
+                          </h4>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-black font-mono text-xs border border-emerald-500/30">
+                        #{triage.confirmationReceipt.caseRefId}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed font-medium">
+                      {triage.confirmationReceipt.summaryMessage}
+                    </p>
+                    <div className="flex items-center space-x-2 text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold">
+                      <Phone className="w-3.5 h-3.5" />
+                      <span>ASHA Worker: <strong>{triage.confirmationReceipt.assignedAshaName}</strong> ({triage.confirmationReceipt.assignedAshaSector})</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* PROACTIVE ALERTS BANNER */}
+                {!isUser && triage?.proactiveAlerts && triage.proactiveAlerts.length > 0 && (
+                  <div className="mt-4 rounded-2xl border-2 border-[#D4A24E]/30 overflow-hidden">
+                    <button
+                      onClick={() => setProactiveAlertsExpanded(prev => ({ ...prev, [msg.id]: !prev[msg.id] }))}
+                      className="w-full px-4 py-3 bg-[#D4A24E]/10 dark:bg-[#D4A24E]/15 flex items-center justify-between cursor-pointer hover:bg-[#D4A24E]/20 transition-colors"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <BellRing className="w-4 h-4 text-[#D4A24E] animate-bounce" />
+                        <span className="text-xs font-extrabold text-[#916323] dark:text-[#E0A845] uppercase tracking-wider">
+                          Proactive Health & Scheme Alerts
+                        </span>
+                        <span className="px-2 py-0.5 rounded-full bg-[#D4A24E] text-slate-950 text-[10px] font-black">
+                          {triage.proactiveAlerts.length}
+                        </span>
+                      </div>
+                      {proactiveAlertsExpanded[msg.id] 
+                        ? <ChevronUp className="w-4 h-4 text-[#916323] dark:text-[#E0A845]" />
+                        : <ChevronDown className="w-4 h-4 text-[#916323] dark:text-[#E0A845]" />
+                      }
+                    </button>
+
+                    {proactiveAlertsExpanded[msg.id] && (
+                      <div className="p-4 space-y-3 bg-[#FAFAF7] dark:bg-[#151318]">
+                        {triage.proactiveAlerts.map((pa: ProactiveAlert) => {
+                          const urgencyColors = {
+                            'URGENT': 'bg-red-50 dark:bg-red-950/60 border-red-300 dark:border-red-800 text-red-900 dark:text-red-200',
+                            'WARNING': 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200',
+                            'INFO': 'bg-sky-50 dark:bg-sky-950/60 border-sky-300 dark:border-sky-800 text-sky-900 dark:text-sky-200',
+                          };
+                          const urgencyBadge = {
+                            'URGENT': 'bg-red-600 text-white',
+                            'WARNING': 'bg-amber-500 text-stone-950',
+                            'INFO': 'bg-sky-500 text-white',
+                          };
+                          const typeIcons: Record<string, React.ReactNode> = {
+                            'scheme_deadline': <Calendar className="w-4 h-4" />,
+                            'outbreak_advisory': <Bug className="w-4 h-4" />,
+                            'immunization_reminder': <Shield className="w-4 h-4" />,
+                            'seasonal_health': <AlertTriangle className="w-4 h-4" />,
+                          };
+
+                          return (
+                            <div
+                              key={pa.id}
+                              className={`p-3.5 rounded-xl border ${urgencyColors[pa.urgency] || urgencyColors['INFO']} space-y-2`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  {typeIcons[pa.type] || <BellRing className="w-4 h-4" />}
+                                  <span className="text-xs font-bold">{pa.title}</span>
+                                </div>
+                                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase ${urgencyBadge[pa.urgency] || urgencyBadge['INFO']}`}>
+                                  {pa.urgency}
+                                </span>
+                              </div>
+                              <p className="text-xs leading-relaxed">{pa.message}</p>
+                              {pa.deadline && (
+                                <div className="flex items-center space-x-1 text-[11px] font-semibold">
+                                  <Clock className="w-3 h-3" />
+                                  <span>Deadline: {new Date(pa.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                </div>
+                              )}
+                              {pa.schemeUrl && (
+                                <a href={pa.schemeUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-bold underline">
+                                  Official Details →
+                                </a>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 

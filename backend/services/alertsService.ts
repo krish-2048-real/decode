@@ -1,5 +1,6 @@
 import { AshaAlert } from '../../src/types/health';
 import { db, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, setDoc, sanitizeFirestoreData } from '../../src/lib/firebase';
+import { notifyAshaWorker } from './notificationService';
 
 const memoryAlerts: AshaAlert[] = [];
 
@@ -34,6 +35,14 @@ export async function createAshaAlertAsync(alertData: Omit<AshaAlert, 'id' | 'st
     console.warn('Could not persist alert to Firestore (falling back to memory):', err);
   }
 
+  // Dispatch instant notification to ASHA worker
+  try {
+    const notifResult = await notifyAshaWorker(newAlert);
+    console.log(`[ASHA ALERT] Instant notification dispatched: ${notifResult.notificationId} → ${notifResult.ashaWorker.name} (${notifResult.ashaWorker.phone})`);
+  } catch (notifErr) {
+    console.warn('[ASHA ALERT] Notification dispatch failed (alert still created):', notifErr);
+  }
+
   return newAlert;
 }
 
@@ -48,12 +57,18 @@ export function createAshaAlert(alertData: Omit<AshaAlert, 'id' | 'status' | 'ti
 
   memoryAlerts.unshift(newAlert);
 
+  // Async write to Firestore in background
   try {
     const alertsRef = collection(db, 'asha_alerts');
     setDoc(doc(alertsRef, alertId), sanitizeFirestoreData(newAlert)).catch(e => console.warn('Firestore write error:', e));
   } catch (err) {
     console.warn('Firestore sync error:', err);
   }
+
+  // Dispatch instant notification to ASHA worker (fire-and-forget for sync version)
+  notifyAshaWorker(newAlert)
+    .then(result => console.log(`[ASHA ALERT] Instant notification dispatched: ${result.notificationId} → ${result.ashaWorker.name}`))
+    .catch(err => console.warn('[ASHA ALERT] Notification dispatch failed:', err));
 
   return newAlert;
 }

@@ -56,6 +56,46 @@ export interface TriageResult {
     phone: string;
     sector: string;
   };
+  confirmationReceipt?: UserConfirmationReceipt;
+  proactiveAlerts?: ProactiveAlert[];
+}
+
+export interface UserConfirmationReceipt {
+  caseRefId: string;
+  assignedAshaName: string;
+  assignedAshaPhone: string;
+  assignedAshaSector: string;
+  timestamp: string;
+  channel: 'voice' | 'text' | 'image';
+  smsDispatched: boolean;
+  smsRecipient?: string;
+  summaryMessage: string;
+}
+
+export interface ProactiveAlert {
+  id: string;
+  type: 'scheme_deadline' | 'outbreak_advisory' | 'immunization_reminder' | 'seasonal_health';
+  title: string;
+  message: string;
+  urgency: 'INFO' | 'WARNING' | 'URGENT';
+  deadline?: string;
+  schemeName?: string;
+  schemeUrl?: string;
+  district?: string;
+  generatedAt: string;
+}
+
+export interface AshaNotification {
+  id: string;
+  alertId: string;
+  type: 'sms' | 'push' | 'in_app';
+  recipientRole: 'asha';
+  recipientDistrict: string;
+  message: string;
+  severity: 'HIGH' | 'CRITICAL';
+  dispatched: boolean;
+  dispatchedAt: string;
+  symptomTags: string[];
 }
 
 export interface Scheme {

@@ -6,6 +6,9 @@ import { matchSchemes } from "./backend/services/schemesService";
 import { getNearestFacilities } from "./backend/services/facilitiesService";
 import { createAshaAlert, getAshaAlerts, getAshaAlertsAsync, updateAshaAlertStatus, updateAshaAlertStatusAsync, generateUserIdHash } from "./backend/services/alertsService";
 import { generateVillageAdvisory } from "./backend/services/advisoryService";
+import { getAshaNotifications, resolveAshaWorker } from "./backend/services/notificationService";
+import { generateProactiveAlerts } from "./backend/services/proactiveService";
+import { UserConfirmationReceipt } from "./src/types/health";
 
 async function startServer() {
   const app = express();
@@ -43,6 +46,38 @@ async function startServer() {
           district: input.userProfile?.state ? `${input.userProfile.state} Region` : "Rural District",
           userIdHash
         });
+      }
+
+      // Generate confirmation receipt for user
+      const caseRefId = 'REF-' + (sessionId ? sessionId.slice(-6).toUpperCase() : Math.random().toString(36).substring(2, 8).toUpperCase());
+      const district = input.userProfile?.state ? `${input.userProfile.state} Region` : "Rural District";
+      const ashaWorker = resolveAshaWorker(district);
+      const channel: 'voice' | 'text' | 'image' = input.imageBase64 ? 'image' : 'text';
+
+      const confirmationReceipt: UserConfirmationReceipt = {
+        caseRefId,
+        assignedAshaName: ashaWorker.name,
+        assignedAshaPhone: ashaWorker.phone,
+        assignedAshaSector: ashaWorker.sector,
+        timestamp: new Date().toISOString(),
+        channel,
+        smsDispatched: result.escalate_immediately && !result.is_private_routing,
+        smsRecipient: input.userProfile?.phone || undefined,
+        summaryMessage: result.escalate_immediately && !result.is_private_routing
+          ? `Case forwarded to ASHA ${ashaWorker.name}, ref #${caseRefId}. They will contact you or visit soon.`
+          : `Your symptoms have been recorded, ref #${caseRefId}. Consult your ASHA worker if symptoms persist.`
+      };
+
+      result.caseRefId = caseRefId;
+      result.assignedAsha = { name: ashaWorker.name, phone: ashaWorker.phone, sector: ashaWorker.sector };
+      result.confirmationReceipt = confirmationReceipt;
+
+      // Generate proactive alerts for user
+      try {
+        const proactiveAlerts = await generateProactiveAlerts(input.userProfile, district);
+        result.proactiveAlerts = proactiveAlerts;
+      } catch (proactiveErr) {
+        console.warn("Proactive alerts generation failed (non-critical):", proactiveErr);
       }
 
       res.json({
@@ -165,6 +200,29 @@ async function startServer() {
     } catch (err: any) {
       console.error("Error generating advisory:", err);
       res.status(500).json({ error: "Failed to generate village health advisory." });
+    }
+  });
+
+  // ASHA Notifications log endpoint
+  app.get("/api/ashaNotifications", async (req, res) => {
+    try {
+      const notifications = await getAshaNotifications();
+      res.json({ success: true, count: notifications.length, notifications });
+    } catch (err: any) {
+      console.error("Error fetching notifications:", err);
+      res.status(500).json({ error: "Failed to fetch ASHA notifications." });
+    }
+  });
+
+  // Proactive Alerts endpoint
+  app.post("/api/proactiveAlerts", async (req, res) => {
+    try {
+      const { userProfile, district } = req.body || {};
+      const alerts = await generateProactiveAlerts(userProfile, district);
+      res.json({ success: true, count: alerts.length, alerts });
+    } catch (err: any) {
+      console.error("Error generating proactive alerts:", err);
+      res.status(500).json({ error: "Failed to generate proactive alerts." });
     }
   });
 

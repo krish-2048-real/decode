@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import { AshaAlert } from '../types/health';
 import { db, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, setDoc, sanitizeFirestoreData } from '../lib/firebase';
 
@@ -7,7 +6,15 @@ const memoryAlerts: AshaAlert[] = [];
 
 export function generateUserIdHash(userId: string): string {
   if (!userId) userId = 'anonymous_' + Math.random().toString();
-  return crypto.createHash('sha256').update(userId + '_salt_arogya_2026').digest('hex').substring(0, 32);
+  let hash = 0;
+  const str = userId + '_salt_arogya_2026';
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  const positiveHash = Math.abs(hash).toString(16).padStart(8, '0');
+  return (positiveHash + positiveHash + positiveHash + positiveHash).substring(0, 32);
 }
 
 export async function createAshaAlertAsync(alertData: Omit<AshaAlert, 'id' | 'status' | 'timestamp'>): Promise<AshaAlert> {
