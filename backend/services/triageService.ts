@@ -91,7 +91,7 @@ export async function runTriageSymptom(input: TriageInput): Promise<TriageResult
   const isSensitive = Boolean(detectedSensitiveCategory) || Boolean(preferPrivate);
   const isPrivateRouting = isSensitive;
 
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY;
   let result: TriageResult;
 
   if (!apiKey) {
