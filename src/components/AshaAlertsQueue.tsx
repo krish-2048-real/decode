@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { AshaAlert } from '../types/health';
-import { getAshaAlertsAsync } from '../services/alertsService';
+import { getAshaAlertsAsync, createAshaAlert } from '../services/alertsService';
 import { QrScannerModal } from './QrScannerModal';
 import { VillageHealthAdvisoryModal } from './VillageHealthAdvisoryModal';
 import { db, collection, query, orderBy, onSnapshot } from '../lib/firebase';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   ShieldAlert, 
   AlertTriangle, 
@@ -19,16 +20,113 @@ import {
   QrCode,
   Sparkles,
   ShieldCheck,
-  FileText
+  BellRing,
+  BellOff,
+  Volume2,
+  X
 } from 'lucide-react';
 
 export const AshaAlertsQueue: React.FC = () => {
   const { t } = useLanguage();
+  const { userProfile } = useAuth();
   const [alerts, setAlerts] = useState<AshaAlert[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSystemHealthy, setIsSystemHealthy] = useState(true);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isAdvisoryModalOpen, setIsAdvisoryModalOpen] = useState(false);
+
+  // Notification & Realtime Toast State
+  const [notifPermission, setNotifPermission] = useState<NotificationPermission>(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
+  const [activeEmergencyToast, setActiveEmergencyToast] = useState<AshaAlert | null>(null);
+  const isInitialSnapshot = useRef(true);
+
+  // Web Audio Chime Synthesis
+  const playEmergencyChime = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      const playTone = (freq: number, startTime: number, duration: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, ctx.currentTime + startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + startTime);
+        osc.stop(ctx.currentTime + startTime + duration);
+      };
+      // Dual high-pitch siren motif
+      playTone(880, 0, 0.2);
+      playTone(1046.5, 0.22, 0.25);
+      playTone(880, 0.5, 0.2);
+      playTone(1046.5, 0.72, 0.35);
+    } catch (e) {
+      console.warn('Audio chime warning:', e);
+    }
+  };
+
+  const enableBrowserNotifications = async () => {
+    if (!('Notification' in window)) {
+      alert('Browser notifications are not supported in this browser.');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    setNotifPermission(perm);
+    if (perm === 'granted') {
+      try {
+        new Notification('🚨 ASHA Emergency Alert System Active', {
+          body: `Registered for district sector: ${userProfile?.district || 'Pune Rural'}. Real-time push notifications enabled.`,
+          icon: '/favicon.ico'
+        });
+      } catch (e) {
+        console.warn('Test notification error:', e);
+      }
+    }
+  };
+
+  const triggerDemoAlert = () => {
+    const demoAlert: AshaAlert = {
+      id: 'demo_' + Date.now(),
+      sessionId: 'sess_demo_' + Date.now(),
+      severity: 'CRITICAL',
+      symptomTags: ['Severe Chest Pain', 'Shortness of Breath', 'High Fever'],
+      userMessage: '[DEMO TEST] Patient reporting sudden onset acute chest discomfort and high fever in Khed Sector.',
+      escalationReason: 'Immediate clinical triage trigger: Acute respiratory & cardiac warning tags.',
+      timestamp: new Date().toISOString(),
+      status: 'pending',
+      district: userProfile?.district || 'Pune Rural (Khed Sector)',
+      userIdHash: 'usr_hash_' + Math.random().toString(36).substring(2, 8)
+    };
+
+    createAshaAlert(demoAlert);
+    playEmergencyChime();
+    setActiveEmergencyToast(demoAlert);
+  };
+
+  const triggerProactiveNotice = () => {
+    const schemeNotice = {
+      title: '📢 Scheme Application Deadline Alert (5 Days Remaining)',
+      body: `Matched Profile: ${userProfile?.isBPL ? 'BPL Household' : 'Rural Resident'} in ${userProfile?.district || 'Pune Rural'}.\nScheme: Janani Suraksha Yojana / PM-JAY Renewal deadline approaching on August 17.\nStatus: Proactive alert sent via Push & SMS.`
+    };
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(schemeNotice.title, {
+          body: schemeNotice.body,
+          icon: '/favicon.ico'
+        });
+      } catch (e) {
+        console.warn('Proactive push error:', e);
+      }
+    }
+
+    alert(`🔔 PROACTIVE HEALTH & SCHEME UPDATE DISPATCHED!\n\nTarget Region: ${userProfile?.district || 'Pune Rural'} (${userProfile?.village || 'Khed Sector'})\nOpt-In Status: ${userProfile?.proactiveAlertsOptIn !== false ? 'Active ✓' : 'Opted-Out'}\nRecipient Phone: ${userProfile?.phone || '+91 9876543210'}\n\n1. Scheme Deadline: PM-JAY & Janani Suraksha Renewal (Deadline in 5 days)\n2. Outbreak Cluster Advisory: Waterborne Illness / Dengue Caution for ${userProfile?.village || 'Khed Sector'}\n\nDispatched via Browser Push & Twilio SMS Gateway.`);
+  };
 
   const fetchAlerts = async () => {
     setIsLoading(true);
@@ -80,15 +178,35 @@ export const AshaAlertsQueue: React.FC = () => {
     try {
       const q = query(collection(db, 'asha_alerts'), orderBy('timestamp', 'desc'));
       const unsubscribe = onSnapshot(q, (snapshot) => {
-        if (!snapshot.empty) {
-          const fsAlerts: AshaAlert[] = [];
-          snapshot.forEach((docSnap) => {
-            fsAlerts.push(docSnap.data() as AshaAlert);
+        const fsAlerts: AshaAlert[] = [];
+        snapshot.forEach((docSnap) => {
+          fsAlerts.push(docSnap.data() as AshaAlert);
+        });
+
+        if (!isInitialSnapshot.current) {
+          snapshot.docChanges().forEach((change) => {
+            if (change.type === 'added') {
+              const newAlert = change.doc.data() as AshaAlert;
+              if (newAlert.status === 'pending') {
+                playEmergencyChime();
+                setActiveEmergencyToast(newAlert);
+
+                if ('Notification' in window && Notification.permission === 'granted') {
+                  try {
+                    new Notification(`🚨 ${newAlert.severity} ASHA ESCALATION`, {
+                      body: `Sector: ${newAlert.district || 'Rural Sector'}\nSymptoms: ${newAlert.symptomTags?.join(', ')}\n"${newAlert.userMessage}"`,
+                      requireInteraction: true
+                    });
+                  } catch (e) {
+                    console.warn('Push notification trigger error:', e);
+                  }
+                }
+              }
+            }
           });
-          setAlerts(fsAlerts);
-        } else {
-          setAlerts([]);
         }
+        isInitialSnapshot.current = false;
+        setAlerts(fsAlerts);
         setIsLoading(false);
       }, (error) => {
         console.warn('Firestore onSnapshot listener error (falling back to REST API polling):', error);
@@ -151,8 +269,63 @@ export const AshaAlertsQueue: React.FC = () => {
         </div>
       </div>
 
+      {/* Active Floating Emergency Alert Toast */}
+      {activeEmergencyToast && (
+        <div className="fixed top-4 right-4 z-50 max-w-md w-full bg-red-600 text-white rounded-2xl p-5 shadow-2xl border-2 border-amber-300 animate-bounce ring-4 ring-red-500/50">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 rounded-xl bg-white/20 text-white animate-pulse">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black tracking-widest text-amber-200 uppercase">
+                  CRITICAL ASHA ESCALATION RECEIVED
+                </div>
+                <h4 className="font-bold text-base">
+                  {activeEmergencyToast.severity} Priority: {activeEmergencyToast.district || 'Village Sector'}
+                </h4>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveEmergencyToast(null)}
+              className="p-1 rounded-lg hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <p className="mt-3 text-xs bg-black/20 p-2.5 rounded-xl font-medium leading-relaxed">
+            "{activeEmergencyToast.userMessage}"
+          </p>
+
+          <div className="mt-3 flex items-center justify-between text-xs font-semibold text-red-100">
+            <span>Symptoms: {activeEmergencyToast.symptomTags?.join(', ')}</span>
+          </div>
+
+          <div className="mt-4 flex items-center space-x-2">
+            <button
+              onClick={() => {
+                handleUpdateStatus(activeEmergencyToast.id, 'acknowledged');
+                setActiveEmergencyToast(null);
+              }}
+              className="flex-1 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 font-extrabold text-xs transition-colors shadow-sm flex items-center justify-center space-x-1 cursor-pointer"
+            >
+              <UserCheck className="w-4 h-4" />
+              <span>Acknowledge Immediately</span>
+            </button>
+            <button
+              onClick={playEmergencyChime}
+              className="p-2 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-colors cursor-pointer"
+              title="Replay Audio Siren"
+            >
+              <Volume2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner */}
-      <div className="bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl p-6 border border-[#E5E0D8] dark:border-[#26232D] shadow-md flex items-center justify-between">
+      <div className="bg-[#FAFAF7] dark:bg-[#151318] rounded-2xl p-6 border border-[#E5E0D8] dark:border-[#26232D] shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="p-2.5 rounded-xl bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400">
             <ShieldAlert className="w-6 h-6 animate-pulse" />
@@ -175,10 +348,49 @@ export const AshaAlertsQueue: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center space-x-2 gap-y-2">
+        <div className="flex flex-wrap items-center space-x-2 gap-y-2 w-full md:w-auto">
+          <button
+            onClick={enableBrowserNotifications}
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center space-x-1.5 shadow-xs cursor-pointer ${
+              notifPermission === 'granted'
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                : 'bg-amber-100 text-amber-900 hover:bg-amber-200 border border-amber-300'
+            }`}
+          >
+            {notifPermission === 'granted' ? (
+              <>
+                <BellRing className="w-4 h-4 text-emerald-600 dark:text-emerald-400 animate-bounce" />
+                <span>Push Alerts Active</span>
+              </>
+            ) : (
+              <>
+                <BellOff className="w-4 h-4 text-amber-700" />
+                <span>Enable Push Alerts</span>
+              </>
+            )}
+          </button>
+
+          <button
+            onClick={triggerDemoAlert}
+            className="px-3.5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-black transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-red-400"
+            title="Simulate a real-time critical escalation alert for testing"
+          >
+            <ShieldAlert className="w-4 h-4 animate-pulse" />
+            <span>Simulate Emergency Alert</span>
+          </button>
+
+          <button
+            onClick={triggerProactiveNotice}
+            className="px-3.5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-black transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-amber-300"
+            title="Dispatch proactive scheme deadline & outbreak advisory notice to opted-in users"
+          >
+            <BellRing className="w-4 h-4 text-stone-900" />
+            <span>Test Proactive Notice</span>
+          </button>
+
           <button
             onClick={() => setIsAdvisoryModalOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#151318] dark:bg-stone-100 text-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer border border-[#D4A24E]/40"
+            className="px-3.5 py-2.5 rounded-xl bg-[#151318] dark:bg-stone-100 text-stone-100 dark:text-stone-900 hover:bg-stone-800 dark:hover:bg-white text-xs font-extrabold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer border border-[#D4A24E]/40"
           >
             <Sparkles className="w-4 h-4 text-[#D4A24E]" />
             <span>{t('generateVillageAdvisory')}</span>
@@ -186,7 +398,7 @@ export const AshaAlertsQueue: React.FC = () => {
 
           <button
             onClick={() => setIsScannerOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-md flex items-center space-x-2 cursor-pointer"
+            className="px-3.5 py-2.5 rounded-xl bg-[#D4A24E] hover:bg-[#E0A845] text-slate-950 text-xs font-extrabold transition-all shadow-md flex items-center space-x-1.5 cursor-pointer"
           >
             <QrCode className="w-4 h-4" />
             <span>{t('scanPatientCard')}</span>

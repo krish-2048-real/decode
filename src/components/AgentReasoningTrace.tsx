@@ -47,7 +47,7 @@ export const AgentReasoningTrace: React.FC<AgentReasoningTraceProps> = ({
           <Cpu className="w-4 h-4 text-[#B68434] dark:text-[#E0A845] animate-pulse" />
           <span>Show AI Multi-Agent Reasoning Trace (4 Agents)</span>
           <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-[#D4A24E]/20 text-[#916323] dark:text-[#E0A845] font-mono">
-            42ms • Gemini 3.6
+            42ms • Gemini Flash Latest
           </span>
         </div>
         <div className="flex items-center space-x-1">

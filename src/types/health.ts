@@ -15,6 +15,7 @@ export interface UserProfile {
   isPregnant?: boolean;
   isBPL?: boolean;
   gender?: string;
+  proactiveAlertsOptIn?: boolean;
   createdAt?: string;
 }
 
@@ -48,6 +49,12 @@ export interface TriageResult {
     description: string;
     concern_category: string;
     urgency: string;
+  };
+  caseRefId?: string;
+  assignedAsha?: {
+    name: string;
+    phone: string;
+    sector: string;
   };
 }
 

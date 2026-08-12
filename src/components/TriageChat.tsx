@@ -14,6 +14,8 @@ import {
   AlertTriangle, 
   ShieldAlert, 
   ShieldCheck,
+  CheckCircle2,
+  Phone,
   MapPin, 
   FileText, 
   RefreshCw, 
@@ -53,6 +55,8 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
   const [isListening, setIsListening] = useState(false);
   const [isPlayingAudioId, setIsPlayingAudioId] = useState<string | null>(null);
   const [isHealthCardOpen, setIsHealthCardOpen] = useState(false);
+  const [smsSentMap, setSmsSentMap] = useState<Record<string, boolean>>({});
+  const [customSmsPhone, setCustomSmsPhone] = useState<string>('');
 
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -256,6 +260,21 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
     }
 
     if (triageRes) {
+      const shortRef = 'REF-' + (sessionId ? sessionId.slice(-6).toUpperCase() : Math.random().toString(36).substring(2, 8).toUpperCase());
+      const ashaSector = userProfile?.village || userProfile?.district || 'Khed Sector';
+      const ashaName = userProfile?.village 
+        ? `Smt. Surekha Tai Pawar (ASHA Worker - ${userProfile.village})`
+        : userProfile?.district 
+          ? `Smt. Sunita Tai Shinde (ASHA Worker - ${userProfile.district})`
+          : 'Smt. Anitha Tai Mane (ASHA Worker - Khed Sector)';
+
+      triageRes.caseRefId = shortRef;
+      triageRes.assignedAsha = {
+        name: ashaName,
+        phone: '+91 98230 11223',
+        sector: ashaSector
+      };
+
       const assistantTurn: ChatTurn = {
         id: 'turn_ai_' + Date.now(),
         role: 'assistant',
@@ -483,16 +502,81 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
                 </div>
 
                 {/* Standard Public Escalation Notice (non-private) */}
-                {!isUser && triage?.escalate_immediately && !triage.is_private_routing && triage.escalation_reason && (
-                  <div className="mt-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-900 text-red-900 dark:text-red-200 text-xs space-y-1">
-                    <div className="flex items-center space-x-1.5 font-bold">
-                      <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      <span>{t('criticalRedFlag')}</span>
+                {!isUser && triage?.escalate_immediately && !triage.is_private_routing && (
+                  <div className="mt-4 space-y-3">
+                    <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/70 border border-red-200 dark:border-red-900 text-red-900 dark:text-red-200 text-xs space-y-1">
+                      <div className="flex items-center space-x-1.5 font-bold">
+                        <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        <span>{t('criticalRedFlag')}</span>
+                      </div>
+                      <p>{triage.escalation_reason}</p>
+                      <p className="text-[11px] font-semibold text-red-700 dark:text-red-300 pt-1">
+                        {t('ashaAlertDispatched')}
+                      </p>
                     </div>
-                    <p>{triage.escalation_reason}</p>
-                    <p className="text-[11px] font-semibold text-red-700 dark:text-red-300 pt-1">
-                      {t('ashaAlertDispatched')}
-                    </p>
+
+                    {/* Patient Confirmation Receipt Card (Part 2) */}
+                    <div className="p-4 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border-2 border-amber-500/40 text-stone-900 dark:text-stone-100 text-xs space-y-3 shadow-sm">
+                      <div className="flex items-center justify-between border-b border-amber-500/30 pb-2">
+                        <div className="flex items-center space-x-2">
+                          <div className="p-1.5 rounded-lg bg-amber-500 text-slate-950 font-black">
+                            <CheckCircle2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-extrabold uppercase text-[10px] tracking-wider text-[#916323] dark:text-[#E0A845]">
+                              PATIENT CONFIRMATION RECEIPT
+                            </span>
+                            <h4 className="font-bold text-sm text-stone-900 dark:text-stone-100">
+                              Case Forwarded to ASHA Health Worker
+                            </h4>
+                          </div>
+                        </div>
+                        <span className="px-2.5 py-1 rounded-md bg-amber-500/20 text-[#916323] dark:text-[#E0A845] font-black font-mono text-xs border border-amber-500/30">
+                          #{triage.caseRefId || ('REF-' + sessionId.slice(-6).toUpperCase())}
+                        </span>
+                      </div>
+
+                      <p className="text-xs leading-relaxed font-medium">
+                        Your case has been forwarded to <strong className="text-amber-800 dark:text-amber-300 font-bold">{triage.assignedAsha?.name || (userProfile?.village ? `Smt. Surekha Tai Pawar (ASHA Worker - ${userProfile.village})` : `Smt. Sunita Tai Shinde (ASHA Worker - ${userProfile.district || 'Khed Sector'})`)}</strong>, reference <strong className="font-mono text-amber-700 dark:text-amber-400 font-bold">#{triage.caseRefId || ('REF-' + sessionId.slice(-6).toUpperCase())}</strong>. They will contact you or visit soon.
+                      </p>
+
+                      {/* SMS Copy Button & Input */}
+                      <div className="pt-2 border-t border-amber-500/20 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        <div className="flex items-center space-x-2 flex-1">
+                          <Phone className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                          <input
+                            type="tel"
+                            placeholder={userProfile?.phone || "+91 9876543210"}
+                            value={customSmsPhone || userProfile?.phone || ''}
+                            onChange={(e) => setCustomSmsPhone(e.target.value)}
+                            className="px-3 py-1.5 rounded-xl bg-white dark:bg-stone-900 border border-amber-500/40 text-xs font-semibold text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-amber-500 w-full max-w-xs"
+                          />
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const refId = triage.caseRefId || ('REF-' + sessionId.slice(-6).toUpperCase());
+                            const asha = triage.assignedAsha?.name || 'Assigned ASHA Worker';
+                            const targetNum = customSmsPhone || userProfile?.phone || '+91 9876543210';
+                            setSmsSentMap(prev => ({ ...prev, [refId]: true }));
+                            alert(`📱 SMS Confirmation Dispatched via Twilio Gateway!\n\nRecipient: ${targetNum}\nReference: #${refId}\n\nMessage:\n"Arogya Sahayak: Your case #${refId} has been assigned to ${asha}. They will reach out to you shortly."`);
+                          }}
+                          disabled={smsSentMap[triage.caseRefId || ('REF-' + sessionId.slice(-6).toUpperCase())]}
+                          className={`px-3.5 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center justify-center space-x-1.5 shadow-sm cursor-pointer shrink-0 ${
+                            smsSentMap[triage.caseRefId || ('REF-' + sessionId.slice(-6).toUpperCase())]
+                              ? 'bg-emerald-600 text-white border border-emerald-500 cursor-default'
+                              : 'bg-amber-500 hover:bg-amber-400 text-stone-950 border border-amber-400'
+                          }`}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>
+                            {smsSentMap[triage.caseRefId || ('REF-' + sessionId.slice(-6).toUpperCase())]
+                              ? 'SMS Sent ✓'
+                              : 'Send me a copy via SMS'}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
 

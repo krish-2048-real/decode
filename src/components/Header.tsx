@@ -228,6 +228,19 @@ export const Header: React.FC<HeaderProps> = ({ userProfile, setUserProfile, set
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-stone-700 dark:text-stone-300 mb-1">
+                  Phone Number (SMS Notifications)
+                </label>
+                <input
+                  type="tel"
+                  value={userProfile.phone || ''}
+                  placeholder="+91 9876543210"
+                  onChange={(e) => setUserProfile({ ...userProfile, phone: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-stone-100 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 text-xs font-medium text-stone-900 dark:text-stone-100 focus:outline-hidden focus:ring-2 focus:ring-[#D4A24E]"
+                />
+              </div>
+
+              <div>
                 <LocationCascader
                   selectedState={userProfile.state || 'Maharashtra'}
                   selectedDistrict={userProfile.district || 'Pune Rural'}
@@ -261,6 +274,16 @@ export const Header: React.FC<HeaderProps> = ({ userProfile, setUserProfile, set
                     className="w-4 h-4 rounded text-[#D4A24E] focus:ring-[#D4A24E] cursor-pointer"
                   />
                   <span>Currently Pregnant / Lactating Mother</span>
+                </label>
+
+                <label className="flex items-center space-x-2.5 text-xs font-bold text-[#B68434] dark:text-[#E0A845] cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={userProfile.proactiveAlertsOptIn ?? true}
+                    onChange={(e) => setUserProfile({ ...userProfile, proactiveAlertsOptIn: e.target.checked })}
+                    className="w-4 h-4 rounded text-[#D4A24E] focus:ring-[#D4A24E] cursor-pointer"
+                  />
+                  <span>Send me health & scheme updates for my area (Push & SMS)</span>
                 </label>
               </div>
             </div>

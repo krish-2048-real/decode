@@ -24,6 +24,7 @@ export const ProfileSetupScreen: React.FC = () => {
   const [income, setIncome] = useState<number>(userProfile?.income !== undefined ? userProfile.income : 96000);
   const [isBPL, setIsBPL] = useState<boolean>(userProfile?.isBPL ?? true);
   const [isPregnant, setIsPregnant] = useState<boolean>(userProfile?.isPregnant ?? false);
+  const [proactiveAlertsOptIn, setProactiveAlertsOptIn] = useState<boolean>(userProfile?.proactiveAlertsOptIn ?? true);
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -42,6 +43,7 @@ export const ProfileSetupScreen: React.FC = () => {
         income,
         isBPL,
         isPregnant,
+        proactiveAlertsOptIn,
         role: 'citizen'
       });
       console.log('Profile saved successfully from ProfileSetupScreen.');
@@ -175,6 +177,16 @@ export const ProfileSetupScreen: React.FC = () => {
                 className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 cursor-pointer"
               />
               <span>Currently Pregnant / Lactating Mother</span>
+            </label>
+
+            <label className="flex items-center space-x-2 text-xs font-semibold text-amber-300 cursor-pointer pt-1">
+              <input
+                type="checkbox"
+                checked={proactiveAlertsOptIn}
+                onChange={(e) => setProactiveAlertsOptIn(e.target.checked)}
+                className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500 cursor-pointer"
+              />
+              <span>Send me health & scheme updates for my area (SMS & Push)</span>
             </label>
           </div>
 
