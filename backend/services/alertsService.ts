@@ -1,5 +1,5 @@
 import { AshaAlert } from '../../src/types/health';
-import { db, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, setDoc } from '../../src/lib/firebase';
+import { db, collection, addDoc, getDocs, doc, updateDoc, query, orderBy, setDoc, sanitizeFirestoreData } from '../../src/lib/firebase';
 
 const memoryAlerts: AshaAlert[] = [];
 
@@ -29,7 +29,7 @@ export async function createAshaAlertAsync(alertData: Omit<AshaAlert, 'id' | 'st
 
   try {
     const alertsRef = collection(db, 'asha_alerts');
-    await setDoc(doc(alertsRef, alertId), newAlert);
+    await setDoc(doc(alertsRef, alertId), sanitizeFirestoreData(newAlert));
   } catch (err) {
     console.warn('Could not persist alert to Firestore (falling back to memory):', err);
   }
@@ -50,7 +50,7 @@ export function createAshaAlert(alertData: Omit<AshaAlert, 'id' | 'status' | 'ti
 
   try {
     const alertsRef = collection(db, 'asha_alerts');
-    setDoc(doc(alertsRef, alertId), newAlert).catch(e => console.warn('Firestore write error:', e));
+    setDoc(doc(alertsRef, alertId), sanitizeFirestoreData(newAlert)).catch(e => console.warn('Firestore write error:', e));
   } catch (err) {
     console.warn('Firestore sync error:', err);
   }

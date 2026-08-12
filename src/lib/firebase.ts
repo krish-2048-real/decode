@@ -37,6 +37,12 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
+export function sanitizeFirestoreData<T>(obj: T): T {
+  if (obj === undefined) return null as any;
+  if (obj === null || typeof obj !== 'object') return obj;
+  return JSON.parse(JSON.stringify(obj, (_key, value) => (value === undefined ? null : value)));
+}
+
 export { 
   app, 
   auth, 

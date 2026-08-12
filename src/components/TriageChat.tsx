@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { ChatTurn, TriageResult, UserProfile } from '../types/health';
 import { runTriageSymptom } from '../services/triageService';
-import { db, doc, setDoc, getDoc } from '../lib/firebase';
+import { db, doc, setDoc, getDoc, sanitizeFirestoreData } from '../lib/firebase';
 import { AgentReasoningTrace } from './AgentReasoningTrace';
 import { DigitalHealthCardModal } from './DigitalHealthCardModal';
 import { 
@@ -87,12 +87,12 @@ export const TriageChat: React.FC<TriageChatProps> = ({ userProfile, onNavigateT
         const effectiveUid = userProfile?.uid || 'guest_user_123';
         try {
           const sessionDocRef = doc(db, 'conversations', effectiveUid, 'sessions', sessionId);
-          await setDoc(sessionDocRef, {
+          await setDoc(sessionDocRef, sanitizeFirestoreData({
             sessionId,
             userId: effectiveUid,
             turns: messages,
             createdAt: new Date().toISOString()
-          }, { merge: true });
+          }), { merge: true });
         } catch (e) {
           console.warn('Session persistence skipped:', e);
         }
