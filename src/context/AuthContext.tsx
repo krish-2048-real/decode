@@ -104,15 +104,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } else {
-        // Unauthenticated - check if guest or local session was saved
+        // Unauthenticated - only restore session if guest mode was explicitly active
         const storedSaved = localStorage.getItem('arogya_saved_profile');
         const storedIsGuest = localStorage.getItem('arogya_is_guest');
-        if (storedSaved) {
+        if (storedIsGuest === 'true' && storedSaved) {
           try {
             const parsed = JSON.parse(storedSaved);
-            setUserProfile(parsed);
-            setIsGuest(storedIsGuest === 'true');
-            setNeedsProfileSetup(false);
+            if (parsed?.role === 'asha' || parsed?.role === 'citizen') {
+              setUserProfile(parsed);
+              setIsGuest(true);
+              setNeedsProfileSetup(false);
+            } else {
+              setUserProfile(null);
+              setNeedsProfileSetup(false);
+            }
           } catch (e) {
             setUserProfile(null);
             setNeedsProfileSetup(false);
@@ -154,49 +159,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const regUsers = getRegisteredAshaUsers();
     const existingLocalUser = regUsers[cleanEmail];
 
-    // Check password if account is registered locally
+    // 1. If account exists in local registry, verify password FIRST
     if (existingLocalUser && existingLocalUser.pass !== pass) {
       setLoading(false);
-      throw new Error('Invalid password for registered ASHA account. Please enter the correct password.');
+      throw new Error('Invalid password. Please enter the correct password for this ASHA account.');
     }
 
-    const ashaProf: UserProfile = existingLocalUser?.profile || {
-      uid: 'asha_user_' + Date.now(),
-      displayName: 'ASHA Worker (' + (cleanEmail ? cleanEmail.split('@')[0] : 'PHC') + ')',
-      email: cleanEmail || 'asha.worker@phc.gov.in',
-      role: 'asha',
-      district: 'Pune Rural',
-      state: 'Maharashtra',
-      village: 'Khed Sector',
-      createdAt: new Date().toISOString()
-    };
-
-    let firebaseAuthSuccess = false;
-
+    // 2. Try Firebase sign-in
     try {
       const res = await signInWithEmailAndPassword(auth, cleanEmail, pass);
+      // Firebase sign-in succeeded - build profile and save
+      const ashaProf: UserProfile = existingLocalUser?.profile || {
+        uid: res.user.uid,
+        displayName: 'ASHA Worker (' + cleanEmail.split('@')[0] + ')',
+        email: cleanEmail,
+        role: 'asha',
+        district: 'Pune Rural',
+        state: 'Maharashtra',
+        village: 'Khed Sector',
+        createdAt: new Date().toISOString()
+      };
       ashaProf.uid = res.user.uid;
-      firebaseAuthSuccess = true;
+      ashaProf.role = 'asha';
+
+      // Save ONLY after successful authentication
+      regUsers[cleanEmail] = { pass, profile: ashaProf };
+      localStorage.setItem('arogya_registered_asha_users', JSON.stringify(regUsers));
+      localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
+      localStorage.setItem('arogya_is_guest', 'false');
       try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
+      setUserProfile(ashaProf);
+      setNeedsProfileSetup(false);
+      setLoading(false);
+      return;
     } catch (err: any) {
-      console.warn('Firebase ASHA sign in error:', err);
+      // Firebase sign-in failed
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        // If user exists in local registry with matching password, this means
+        // Firebase has a different password - reject
+        if (!existingLocalUser) {
+          setLoading(false);
+          throw new Error('Incorrect password. Please check your password or register a new account.');
+        }
+        // existingLocalUser password matched (checked above), so allow local-only login
+      } else if (err.code === 'auth/user-not-found') {
+        if (!existingLocalUser) {
+          setLoading(false);
+          throw new Error('No ASHA account found. Please register first by clicking "New ASHA Worker? Register Account".');
+        }
+      } else if (err.code === 'auth/invalid-email') {
         setLoading(false);
-        throw new Error('Incorrect password entered. Please enter the valid account password.');
+        throw new Error('Invalid email format. Please enter a valid email address.');
+      } else {
+        // Other Firebase errors - allow local-only login if registered locally
+        if (!existingLocalUser) {
+          setLoading(false);
+          throw new Error('Authentication failed. Please register first or check your credentials.');
+        }
       }
     }
 
-    // Exact demo credential match only (no loose substring matching!)
-    const isDemoCredential = cleanEmail === 'asha.worker@phc.gov.in';
-
-    if (!firebaseAuthSuccess && !existingLocalUser && !isDemoCredential) {
-      setLoading(false);
-      throw new Error('No ASHA account found for this email. Please click "New ASHA Worker? Register Account" below to register.');
-    }
-
-    // Login success - save session
-    regUsers[cleanEmail] = { pass, profile: ashaProf };
-    localStorage.setItem('arogya_registered_asha_users', JSON.stringify(regUsers));
+    // 3. Local-only login (existingLocalUser with matching password, Firebase unavailable)
+    const ashaProf: UserProfile = existingLocalUser!.profile;
+    ashaProf.role = 'asha';
     localStorage.setItem('arogya_saved_profile', JSON.stringify(ashaProf));
     localStorage.setItem('arogya_is_guest', 'true');
     setIsGuest(true);
@@ -213,16 +238,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
 
     const cleanEmail = (email || '').toLowerCase().trim();
-    const regUsers = getRegisteredAshaUsers();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setLoading(false);
+      throw new Error('Please enter a valid email address.');
+    }
 
+    const regUsers = getRegisteredAshaUsers();
     if (regUsers[cleanEmail]) {
       setLoading(false);
-      throw new Error('This email is already registered as an ASHA account. Please switch to "Sign In" mode.');
+      throw new Error('This email is already registered. Please switch to "Sign In" mode.');
     }
 
     const ashaProf: UserProfile = {
-      uid: 'asha_user_' + Date.now(),
-      displayName: 'ASHA Worker (' + (cleanEmail ? cleanEmail.split('@')[0] : 'PHC') + ')',
+      uid: 'asha_local_' + Date.now(),
+      displayName: 'ASHA Worker (' + cleanEmail.split('@')[0] + ')',
       email: cleanEmail,
       role: 'asha',
       district: 'Pune Rural',
@@ -231,21 +260,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString()
     };
 
+    // Try Firebase registration (but do NOT auto-login even if it succeeds)
     try {
       const res = await createUserWithEmailAndPassword(auth, cleanEmail, pass);
       ashaProf.uid = res.user.uid;
       try { await setDoc(doc(db, 'users', res.user.uid), ashaProf, { merge: true }); } catch (fErr) {}
+      // Sign out immediately so onAuthStateChanged doesn't auto-login
+      await signOut(auth);
     } catch (err: any) {
-      console.warn('Firebase ASHA registration error (registering locally):', err);
       if (err.code === 'auth/email-already-in-use') {
         setLoading(false);
-        throw new Error('This email is already registered. Please click "Already Registered? Sign In" below.');
+        throw new Error('This email is already registered on Firebase. Please use "Sign In" mode.');
       }
+      // Other Firebase errors are fine - we still register locally
     }
 
-    // Save registered user profile and password in registry WITHOUT auto-logging in!
+    // Save to local registry only (no auto-login!)
     regUsers[cleanEmail] = { pass, profile: ashaProf };
     localStorage.setItem('arogya_registered_asha_users', JSON.stringify(regUsers));
+    // Do NOT set arogya_saved_profile or isGuest here - user must sign in explicitly
     setLoading(false);
   };
 
